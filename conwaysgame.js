@@ -22,7 +22,10 @@ function Automaton(canvas_id, w, h, seed, color) {
           cell = new Cell(x, y, Cell.shouldLive(x, y, this.seed), this);
           
       this.grid[x][y] = cell;
-      if (cell.alive) this.ctx.fillRect(bx, by, this.unit, this.unit);
+      if (cell.alive) {
+        this.ctx.fillStyle = cell.lifeColor();
+        this.ctx.fillRect(bx, by, this.unit, this.unit);
+      }
     }
   }
 }
@@ -63,6 +66,7 @@ Automaton.prototype.draw = function() {
           cell = this.grid[x][y];
       
       if (cell.alive) {
+        this.ctx.fillStyle = cell.lifeColor();
         this.ctx.fillRect(bx, by, this.unit, this.unit);
       } else {
         this.ctx.clearRect(bx, by, this.unit, this.unit);
@@ -133,14 +137,23 @@ Cell.prototype.numLiveNeighbors = function() {
   return liveNeighborsCount;
 }
 
-Cell.prototype.divId = function() {
-  return 'cell_'+ this.x +'_'+ this.y;
+Cell.lifeColors = {
+  0: '#ffffff', 1: '#999999', // starved dead
+  2: '#000099',               // happy alive
+  3: '#009900',               // sexy alive
+  4: '#990000', 5: '#cccccc', // suffocated dead
+  6: '#999900', 7: '#009999', // smooshed dead
+  8: '#000000'                // fucking dead
+}
+
+Cell.prototype.lifeColor = function() {
+  return Cell.lifeColors[this.numLiveNeighbors()];
 }
 
 $(function() {
   var w = 50,
       h = 50,
-      fps = 60,
+      fps = 20,
       seed = [[10, 8], [10, 9], [10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [10, 15],   [11, 12], [12, 12], [13, 12]],
       interval = 0,
       automaton = new Automaton('grid', w, h, seed),
