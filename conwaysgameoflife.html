@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Conway's Game of Life</title>
+    <style type="text/css">
+      #wrap { width: 44%; margin:20px 0; }
+      #grid { border:1px solid black; margin: 20px auto; overflow: hidden; }
+      .cell { float: left; }
+      .alive { background: #000; }
+      .dead { background: #fff; }
+      form { margin-top: 10px; }
+      label { display: block; margin-bottom: 5px;}
+    </style>
+    
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="conwaysgame.js"></script>
+  </head>
+  <body>
+    <div id="wrap">
+        <canvas id="grid"></canvas>
+        <button id="start">Start</button>
+        <button id="stop">Stop</button>
+        <button id="reset">Reset</button>
+        
+        <form id="update" action="" method="">
+          <label>
+            FPS: 
+            <input type="text" id="fps" value="30" />
+          </label>
+          <label>
+            Width: 
+            <input type="text" id="w" value="25" />
+          </label>
+          <label>
+            Height: 
+            <input type="text" id="h" value="25" />
+          </label>
+          <input type="submit" value="Update" />
+        </form>
+    </div>
+  </body>
+</html>
