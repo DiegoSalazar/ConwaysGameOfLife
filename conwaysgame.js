@@ -14,8 +14,7 @@ function Automaton(canvas_id, w, h, seed, color) {
   else return alert('OMG This browser like totally doesn\'t support Canvas. You should like upgrade and stuff.');
   
   this.traverseGrid(function(cell, x, y) {
-    var cell = new Cell(x, y, Cell.shouldLive(x, y, this.seed), this);    
-    this.grid[x][y] = cell;
+    this.grid[x][y] = new Cell(x, y, Cell.shouldLive(x, y, this.seed), this);    
   }, function(x) {
     this.grid[x] = [];
   }).draw();
@@ -72,8 +71,8 @@ Automaton.prototype.draw = function() {
       this.ctx.fillStyle = cell.lifeColor();
       this.ctx.fillRect(x * this.unit, y * this.unit, this.unit, this.unit);
     } else {
+      this.ctx.fillRect(x * this.unit, y * this.unit, this.unit, this.unit);
       this.ctx.clearRect(x * this.unit, y * this.unit, this.unit, this.unit);
-      this.ctx.strokeStyle = this.strokeColor;
     }
   });
   return this;
@@ -194,7 +193,7 @@ Cell.prototype.lifeColor = function() {
 }
 
 $(function() {
-  var w = 35,
+  var w = 40,
       h = 30,
       fps = 10,
       // Gosper's Glider Gun
