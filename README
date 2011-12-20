@@ -1,0 +1,5 @@
+* Conway's Game of Life
+* http://en.wikipedia.org/wiki/Conway's_Game_of_Life
+
+Open index.html in a canvas compatible web browser and click the Start button.
+Before clicking Start, you can toggle each cell by clicking on it, this let's you customize the "seed";
