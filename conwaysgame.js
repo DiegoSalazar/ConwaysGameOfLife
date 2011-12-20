@@ -131,7 +131,7 @@ Cell.prototype.numLiveNeighbors = function() {
       neighbor = this.automaton.grid[targetX][targetY];
     }
     
-    neighbor.alive ? liveNeighborsCount++ : null;
+    if (neighbor.alive) liveNeighborsCount++;
   }
   
   return liveNeighborsCount;
