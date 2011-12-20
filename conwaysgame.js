@@ -52,7 +52,16 @@ Automaton.prototype.getCellAdjacentTo = function(cell, where) {
 
 Automaton.prototype.update = function() {
   this.traverseGrid(function(cell, x, y) {
-    cell.killYourselfMaybe();
+    cell.flagYourselfForDeath();
+    
+  }).traverseGrid(function(cell, x, y) {
+    if (cell.flaggedForDeath) {
+      cell.alive = false;
+      cell.flaggedForDeath = false;
+    } else if (!cell.alive && cell.flaggedForRevive) {
+      cell.alive = true;
+      cell.flaggedForRevive = false;
+    }
   });
   return this;
 }
@@ -122,6 +131,8 @@ function Cell(x, y, alive, automaton) {
   this.y = y;
   this.alive = alive;
   this.automaton = automaton;
+  this.flaggedForDeath = false;
+  this.flaggedForRevive = false;
 }
 
 Cell.shouldLive = function(x, y, seed) {
@@ -135,19 +146,19 @@ Cell.shouldLive = function(x, y, seed) {
 }
 
 // this is where the magic happens
-Cell.prototype.killYourselfMaybe = function(grid) {
+Cell.prototype.flagYourselfForDeath = function(grid) {
   var num = this.numLiveNeighbors();
   
   if (this.alive) {
     // 1. Any live cell with fewer than two live neighbours dies, as if caused by under-population.
-    if (num < 2) this.alive = false;
+    if (num < 2) this.flaggedForDeath = true;
     // 2. Any live cell with two or three live neighbours lives on to the next generation.
     //else if (num == 2 || num == 3) {}
     // 3. Any live cell with more than three live neighbours dies, as if by overcrowding.
-    else if (num > 3) this.alive = false;
+    else if (num > 3) this.flaggedForDeath = true;
   } else {
     // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-    if (num == 3) this.alive = true;
+    if (num == 3) this.flaggedForRevive = true;
   }
 }
 
@@ -185,7 +196,8 @@ Cell.prototype.lifeColor = function() {
 $(function() {
   var w = 35,
       h = 30,
-      fps = 60,
+      fps = 10,
+      // Gosper's Glider Gun
       seed = [[0, 4], [0,5], [1,4], [1,5],
       [13,2], [12,2],  [11,3],  [10,4], [10,5], [10,6],  [11,7], [12, 8], [13,8],
       [14,5],  [15,3],  [16,4], [16,5], [16,6],  [15,7],  [17, 5],
