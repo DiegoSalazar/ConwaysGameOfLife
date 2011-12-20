@@ -115,7 +115,7 @@ Cell.prototype.killYourselfMaybe = function(grid) {
     if (num > 3) this.alive = false;
   } else {
     // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-    this.alive = num == 3 ? true : false;
+    if (num == 3) this.alive = true;
   }
 }
 
