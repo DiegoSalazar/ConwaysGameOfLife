@@ -152,7 +152,7 @@ Cell.prototype.flagYourselfForDeath = function(grid) {
     // 1. Any live cell with fewer than two live neighbours dies, as if caused by under-population.
     if (num < 2) this.flaggedForDeath = true;
     // 2. Any live cell with two or three live neighbours lives on to the next generation.
-    //else if (num == 2 || num == 3) {}
+    // so we do nothing here.
     // 3. Any live cell with more than three live neighbours dies, as if by overcrowding.
     else if (num > 3) this.flaggedForDeath = true;
   } else {
@@ -197,12 +197,9 @@ $(function() {
       h = 30,
       fps = 10,
       // Gosper's Glider Gun
-      seed = [[0, 4], [0,5], [1,4], [1,5],
-      [13,2], [12,2],  [11,3],  [10,4], [10,5], [10,6],  [11,7], [12, 8], [13,8],
-      [14,5],  [15,3],  [16,4], [16,5], [16,6],  [15,7],  [17, 5],
-      [34,2], [33,2], [33,3], [34,3],
-      [21, 4], [22, 4], [21, 3], [22, 3], [22, 2], [21, 2],
-      [23, 1],[23, 5],[25, 1],[25, 0],[25, 5],[25, 6]],//[[10, 8], [10, 9], [10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [10, 15],   [11, 12], [12, 12], [13, 12]],
+      seed = [[2,6],[2,7],[3,6],[3,7],[12,6],[12,7],[12,8],[13,5],[13,9],[14,4],[14,10],[15,4],[15,10],
+      [16,7],[17,5],[17,9],[18,6],[18,7],[18,8],[19,7],[22,4],[22,5],[22,6],[23,4],[23,5],[23,6],[24,3],[24,7],
+      [26,2],[26,3],[26,7],[26,8],[36,4],[36,5],[37,4],[37,5]],
       interval = 0,
       canvas_id = 'grid',
       maxClumps = 30,
