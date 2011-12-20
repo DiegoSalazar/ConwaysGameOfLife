@@ -4,7 +4,7 @@
     <title>Conway's Game of Life</title>
     <style type="text/css">
       #wrap { width: 44%; margin:20px 0; }
-      #grid { border:1px solid black; margin: 20px auto; overflow: hidden; }
+      #grid { border:1px solid black; margin: 20px auto; overflow: hidden; display: block; }
       .cell { float: left; }
       .alive { background: #000; }
       .dead { background: #fff; }
@@ -21,6 +21,10 @@
         <button id="start">Start</button>
         <button id="stop">Stop</button>
         <button id="reset">Reset</button>
+        <button id="clear">Clear</button>
+        <button id="random">Random Seed</button>
+        
+        # Live Cells: <span id="liveCellCount">0</span>
         
         <form id="update" action="" method="">
           <label>
@@ -34,6 +38,14 @@
           <label>
             Height: 
             <input type="text" id="h" value="25" />
+          </label>
+          <label>
+            Max Seed Clumps: 
+            <input type="text" id="maxClumps" value="30" />
+          </label>
+          <label>
+            Max Clump Size: 
+            <input type="text" id="clumpSize" value="40" />
           </label>
           <input type="submit" value="Update" />
         </form>
