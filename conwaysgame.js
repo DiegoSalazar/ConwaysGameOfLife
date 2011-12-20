@@ -1,5 +1,6 @@
 // http://en.wikipedia.org/wiki/Conway's_Game_of_Life
 
+// represents the grid, manages time ticks and draws updates
 function Automaton(canvas_id, w, h, seed, color) {   
   this.w = w;
   this.h = h;
@@ -8,7 +9,9 @@ function Automaton(canvas_id, w, h, seed, color) {
   this.grid = [],
   this.strokeColor = color || 'black',
   this.canvas = $('#'+ canvas_id).attr({ width: w*10 +'px', height: h*10 +'px' })[0];
-  this.ctx = this.canvas.getContext('2d');
+  
+  if (this.canvas.getContext) this.ctx = this.canvas.getContext('2d');
+  else return alert('OMG This browser like totally doesn\'t support Canvas. You should like upgrade and stuff.');
   
   for (var x = 0; x < this.w; x++) {
     var bx = x == 0 ? x : x * this.unit;
@@ -19,14 +22,7 @@ function Automaton(canvas_id, w, h, seed, color) {
           cell = new Cell(x, y, Cell.shouldLive(x, y, this.seed), this);
           
       this.grid[x][y] = cell;
-      
-      // draw the blocks
-      this.ctx.strokeStyle = this.strokeColor;
-      this.ctx.strokeRect(bx, by, this.unit, this.unit);
-      
-      if (cell.alive) {
-        this.ctx.fillRect(bx, by, this.unit, this.unit);
-      }
+      if (cell.alive) this.ctx.fillRect(bx, by, this.unit, this.unit);
     }
   }
 }
@@ -51,12 +47,9 @@ Automaton.prototype.getCellAdjacentTo = function(cell, where) {
 }
 
 Automaton.prototype.update = function() {
-  var x, y, currentCell;
-  
-  for (x = 0; x < this.w; x++) {
-    for (y = 0; y < this.h; y++) {
-      var currentCell = this.grid[x][y];
-      currentCell.killYourselfMaybe();
+  for (var x = 0; x < this.w; x++) {
+    for (var y = 0; y < this.h; y++) {
+      this.grid[x][y].killYourselfMaybe();
     }
   }
 }
@@ -73,8 +66,6 @@ Automaton.prototype.draw = function() {
         this.ctx.fillRect(bx, by, this.unit, this.unit);
       } else {
         this.ctx.clearRect(bx, by, this.unit, this.unit);
-        this.ctx.strokeStyle = this.strokeColor;
-        this.ctx.strokeRect(bx, by, this.unit, this.unit);
       }
     }
   }
