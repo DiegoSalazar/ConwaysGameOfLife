@@ -43,17 +43,18 @@ function Automaton(canvas_id, w, h, seed, color) {
   this.w = w;
   this.h = h;
   this.unit = 10;
-  this.seed = seed || false,
-  this.grid = [],
-  this.strokeColor = color || 'black',
-  this.canvas = $('#'+ canvas_id).attr({ width: w*10 +'px', height: h*10 +'px' })[0];
+  this.seed = Automaton.seeds[seed];
+  this.grid = [];
+  this.strokeColor = color || 'black';
+  this.canvas = $('#'+ canvas_id).attr({ width: w * this.unit +'px', height: h * this.unit +'px' })[0];
   
   if (this.canvas.getContext) this.ctx = this.canvas.getContext('2d');
   else return alert('OMG This browser like totally doesn\'t support Canvas. You should like upgrade and stuff.');
   
+  // build grid and add cells to the it
   this.traverseGrid(function(cell, x, y) {
-    this.grid[x][y] = new Cell(x, y, Cell.shouldLive(x, y, this.seed), this);    
-  }, function(x) {
+    this.grid[x][y] = new Cell(x, y, this.dropSeed(x, y-15), this);    
+  }, function(x) { // this callback runs first
     this.grid[x] = [];
   }).draw();
 }
@@ -86,105 +87,117 @@ Automaton.seeds = {
   'acorn' : []
 }
 
-Automaton.prototype.traverseGrid = function(yCallback, xCallback) {
-  for (var x = 0; x < this.w; x++) {
-    if (typeof xCallback == 'function') 
-      xCallback.call(this, x);
-    for (var y = 0; y < this.h; y++)
-      yCallback.call(this, this.grid[x][y], x, y);
-  }
-  return this;
-}
+Automaton.prototype = {
+  dropSeed: function(x, y) {
+    if (!this.seed) return false;
+    for (var i = 0, len = this.seed.length; i < len; i++) {
+      if (typeof(this.seed[i]) == 'object' && x == this.seed[i][0] && y == this.seed[i][1])
+        return true;
+    }
+    return false;
+  },
+  traverseGrid: function(yCallback, xCallback) {
+    for (var x = 0; x < this.w; x++) {
+      if (typeof xCallback == 'function') 
+        xCallback.call(this, x);
+      for (var y = 0; y < this.h; y++)
+        yCallback.call(this, this.grid[x][y], x, y);
+    }
+    return this;
+  },
+  getCellAdjacentTo: function(cell, where) {
+    var x = cell.x + Automaton.adjust[where]['x'],
+        y = cell.y + Automaton.adjust[where]['y'];
+    return this.grid[x][y];
+  },
+  update: function() {
+    this.traverseGrid(function(cell, x, y) {
+      cell.flagYourselfForDeathMaybe();
 
-Automaton.prototype.getCellAdjacentTo = function(cell, where) {
-  var x = cell.x + Automaton.adjust[where]['x'],
-      y = cell.y + Automaton.adjust[where]['y'];
-  return this.grid[x][y];
-}
+    }).traverseGrid(function(cell, x, y) {
+      if (cell.flaggedForDeath) {
+        cell.alive = false;
+        cell.flaggedForDeath = false;
+      } else if (!cell.alive && cell.flaggedForRevive) {
+        cell.alive = true;
+        cell.flaggedForRevive = false;
+      }
+    });
+    return this;
+  },
+  draw: function() {
+    this.traverseGrid(function(cell, x, y) {
+      cell.draw();
+    });
+    return this;
+  },
+  // randomly seed clumps of cells
+  randomSeed: function(maxClumps, maxClumpSize) {
+    var numClumps = rand(maxClumps), cells = [];
 
-Automaton.prototype.update = function() {
-  this.traverseGrid(function(cell, x, y) {
-    cell.flagYourselfForDeath();
+    // create the clumps
+    for (var i = 0; i < numClumps; i++) {
+      var clumpSize = rand(maxClumpSize),
+          randX = Math.floor(rand(this.w) / rand(4)),
+          randY = Math.floor(rand(this.h) / rand(4)),
+          cell = new Cell(randX, randY, true, this);
+
+      // add cells to the clump
+      for (var j = 0; j < clumpSize; j++) {
+        cells.push(cell);
+        var where = Automaton.wheres[rand(Automaton.wheres.length-1)]
+            x = cell.x + Automaton.adjust[where]['x'],
+            y = cell.y + Automaton.adjust[where]['y'];
+
+        cell = new Cell(x, y, true, this);
+      }
+    }
+
+    // add the cells to the grid and return *this*
+    return this.traverseGrid(function(cell, x, y) {
+      for (var i = 0, len = cells.length; i < len; i++) {
+        var cell = cells[i];
+        if (x == cell.x && y == cell.y) 
+          this.grid[x][y] = cell;
+      }
+    });
+  },
+  liveCellCount: function() {
+    var liveCellCount = 0;
+    this.traverseGrid(function(cell, x, y) {
+      if (cell.alive) liveCellCount++;
+    });
+    return liveCellCount;
+  },
+  // find a cell by the collision of a click with a cell on the coordinate space
+  getCell: function(x, y) {
+    return this.grid[x][y];
+  },
+  // return a seed array from the state of the grid
+  getSeed: function() {
+    var seed = [];
+    this.traverseGrid(function(cell, x, y) {
+      if (cell.alive) seed.push([x, y]);
+    });
+    return seed;
+  },
+  moveClump: function(direction) {
+    var cells = [];
     
-  }).traverseGrid(function(cell, x, y) {
-    if (cell.flaggedForDeath) {
-      cell.alive = false;
-      cell.flaggedForDeath = false;
-    } else if (!cell.alive && cell.flaggedForRevive) {
-      cell.alive = true;
-      cell.flaggedForRevive = false;
-    }
-  });
-  return this;
-}
-
-Automaton.prototype.draw = function() {
-  this.traverseGrid(function(cell, x, y) {
-    if (cell.alive) {
-      this.ctx.fillStyle = cell.lifeColor();
-      this.ctx.fillRect(x * this.unit, y * this.unit, this.unit, this.unit);
-    } else {
-      this.ctx.fillRect(x * this.unit, y * this.unit, this.unit, this.unit);
-      this.ctx.clearRect(x * this.unit, y * this.unit, this.unit, this.unit);
-    }
-  });
-  return this;
-}
-
-// randomly seed clumps of cells
-Automaton.prototype.randomSeed = function(maxClumps, maxClumpSize) {
-  var numClumps = rand(maxClumps),
-      cellCache = [],
-      clumpsize;
-  
-  // create the clumps
-  for (var i = 0; i < numClumps; i++) {
-    var clumpSize = rand(maxClumpSize),
-        randX = Math.floor(rand(this.w) / rand(4)),
-        randY = Math.floor(rand(this.h) / rand(4)),
-        cell = new Cell(randX, randY, true, this);
-    
-    for (var j = 0; j < clumpSize; j++) {
-      cellCache.push(cell);
+    this.traverseGrid(function(cell, x, y) {
+      var newX = cell.x += Automaton.adjust[direction]['x'],
+          newY = cell.y += Automaton.adjust[direction]['y'];
       
-      var randWhere = Automaton.wheres[rand(Automaton.wheres.length-1)]
-          newX = cell.x + Automaton.adjust[randWhere]['x'],
-          newY = cell.y + Automaton.adjust[randWhere]['y'];
-          newCell = new Cell(newX, newY, true, this);
+      this.grid[x][y] = null;
       
-      cell = newCell;
-    }
+    }).traverseGrid(function(cell, x, y) {
+      for (var i = 0, len = cells.length; i < len; i++) {
+        var cell = cells[i]
+        if (x == cell.x && y == cell.y)
+          this.grid[x][y] = cell;
+      }
+    }).draw();
   }
-  
-  // add the to the grid
-  return this.traverseGrid(function(cell, x, y) {
-    for (var i = 0, len = cellCache.length; i < len; i++) {
-      var cell = cellCache[i];
-      if (x == cell.x && y == cell.y) this.grid[x][y] = cell;
-    }
-  });
-}
-
-Automaton.prototype.liveCellCount = function() {
-  var liveCellCount = 0;
-  this.traverseGrid(function(cell, x, y) {
-    if (cell.alive) liveCellCount++;
-  });
-  return liveCellCount;
-}
-
-// fidn a cell by the collision of a click with a cell on the coordinate space
-Automaton.prototype.getCell = function(x, y) {
-  return this.grid[x][y];
-}
-
-// return a seed array
-Automaton.prototype.getSeed = function() {
-  var seed = [];
-  this.traverseGrid(function(cell, x, y) {
-    if (cell.alive) seed.push([x, y]);
-  });
-  return seed;
 }
 
 function Cell(x, y, alive, automaton) {
@@ -192,66 +205,77 @@ function Cell(x, y, alive, automaton) {
   this.y = y;
   this.alive = alive;
   this.automaton = automaton;
+  this.ctx = automaton.ctx;
+  this.unit = automaton.unit;
   this.flaggedForDeath = false;
   this.flaggedForRevive = false;
 }
 
-Cell.shouldLive = function(x, y, seed) {
-  if (!seed) return false;
-  
-  for (var i = 0, len = seed.length; i < len; i++) {
-    if (typeof(seed[i]) == 'object' && x == seed[i][0] && y == seed[i][1])
-      return true;
-  }
-  return false;
-}
-
-// this is where the magic happens
-Cell.prototype.flagYourselfForDeath = function(grid) {
-  var num = this.numLiveNeighbors();
-  
-  if (this.alive) {
-    // 1. Any live cell with fewer than two live neighbours dies, as if caused by under-population.
-    if (num < 2) this.flaggedForDeath = true;
-    // 2. Any live cell with two or three live neighbours lives on to the next generation.
-    // so we do nothing here.
-    // 3. Any live cell with more than three live neighbours dies, as if by overcrowding.
-    else if (num > 3) this.flaggedForDeath = true;
-  } else {
-    // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-    if (num == 3) this.flaggedForRevive = true;
-  }
-}
-
-Cell.prototype.numLiveNeighbors = function() {
-  var liveNeighborsCount = 0;
-  
-  for (var i = 0; i < 8; i++) {
-    var targetX = this.x + Automaton.adjust[Automaton.wheres[i]]['x'],
-        targetY = this.y + Automaton.adjust[Automaton.wheres[i]]['y'],
-        neighbor = new Cell(0, 0, false); // default dead cell
-    
-    if (this.automaton.grid[targetX] && this.automaton.grid[targetX][targetY]) {
-      neighbor = this.automaton.grid[targetX][targetY];
+Cell.prototype = {
+  draw: function() {
+    if (this.alive) {
+      this.fadeIn();
+    } else {
+      this.ctx.strokeStyle = 'black';
+      this.ctx.lineWidth = 0.3;
+      this.ctx.strokeRect(this.x * this.unit, this.y * this.unit, this.unit, this.unit);
+      this.ctx.clearRect(this.x * this.unit, this.y * this.unit, this.unit, this.unit);
     }
-    
-    if (neighbor.alive) liveNeighborsCount++;
+  },
+  fadeIn: function() {
+    var self = this, increment = 0, color = this.lifeColor();
+    //clearInterval(this.fadeInterval);
+
+    //this.fadeInterval = setInterval(function() {
+      self.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', 1)';//'+ increment/3 +')';
+      self.ctx.fillRect(self.x * self.unit, self.y * self.unit, self.unit, self.unit);
+      increment++;
+    //}, 5);
+  },
+  // this is where the magic happens
+  flagYourselfForDeathMaybe: function(grid) {
+    var num = this.numLiveNeighbors();
+
+    if (this.alive) {
+      // 1. Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+      if (num < 2) this.flaggedForDeath = true;
+      // 2. Any live cell with two or three live neighbours lives on to the next generation.
+      // so we do nothing here.
+      // 3. Any live cell with more than three live neighbours dies, as if by overcrowding.
+      else if (num > 3) this.flaggedForDeath = true;
+    } else {
+      // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+      if (num == 3) this.flaggedForRevive = true;
+    }
+  },
+  numLiveNeighbors: function() {
+    var liveNeighborsCount = 0;
+
+    for (var i = 0; i < 8; i++) {
+      var targetX = this.x + Automaton.adjust[Automaton.wheres[i]]['x'],
+          targetY = this.y + Automaton.adjust[Automaton.wheres[i]]['y'],
+          alive = false;
+
+      if (this.automaton.grid[targetX] && this.automaton.grid[targetX][targetY])
+        alive = this.automaton.grid[targetX][targetY].alive;
+      if (alive) liveNeighborsCount++;
+    }
+
+    return liveNeighborsCount;
+  },
+  lifeColor: function() {
+    return Cell.lifeColors[this.numLiveNeighbors()];
   }
-  
-  return liveNeighborsCount;
 }
 
+// arrays of rgb values [r, g, b]
 Cell.lifeColors = {
-  0: '#ffffff', 1: '#999999', // starved dead
-  2: '#000099',               // happy alive
-  3: '#009900',               // sexy alive
-  4: '#990000', 5: '#cccccc', // suffocated dead
-  6: '#999900', 7: '#009999', // smooshed dead
-  8: '#000000'                // fucking dead
-}
-
-Cell.prototype.lifeColor = function() {
-  return Cell.lifeColors[this.numLiveNeighbors()];
+  0: [200, 200, 255], 1: [200, 200, 200], // starved dead
+  2: [0, 0, 200],                         // happy alive
+  3: [0, 200, 0],                         // sexy alive
+  4: [200, 0, 0],   5: [180, 180, 180],   // suffocated dead
+  6: [200, 200, 0], 7: [0, 200, 200],     // smooshed dead
+  8: [0, 0, 0]                            // fucking dead
 }
 
 function Storage(name) {
@@ -265,141 +289,184 @@ function Storage(name) {
   return this;
 }
 
-Storage.prototype.save = function(name, data) {
-  c_log(name, data);
-  this.container(name, data);
-  return true;
-}
-
-Storage.prototype.read = function(name) {
-  c_log('read', name);
-  this.container(name);
-  return true;
+Storage.prototype = {
+  save: function(name, data) {
+    c_log(name, data);
+    this.container(name, data);
+    return true;
+  },
+  read: function(name) {
+    c_log('read', name);
+    this.container(name);
+    return true;
+  }
 }
 
 function Inputs() {
-  this.names = ['fps', 'w', 'h', 'maxClumps', 'clumpSize'];
+  this.names = ['fps', 'w', 'h', 'maxClumps', 'clumpSize', 'preSeed'];
 }
 
-Inputs.prototype.state = function() {
-  var iS = {}
-  for (var i = 0, len = Inputs.length; i < len; i++) {
-    var name = Inputs[i];
-    if ($('#'+ name).val) 
-      iS[name] = parseInt($('#'+ name).val()); 
+Inputs.prototype = {
+  state: function() {
+    var iS = {}
+    for (var i = 0, len = Inputs.length; i < len; i++) {
+      var name = Inputs[i];
+      if ($('#'+ name).val) 
+        iS[name] = parseInt($('#'+ name).val()); 
+    }
+    return iS;
+  },
+  read: function() {
+    for (var i = 0, len = this.names.length; i < len; i++) {
+      var name = this.names[i],
+          val = this.get(name);
+      if (val) this[name] = isNaN(val) ? val : parseInt(val);
+    }
+
+    return this;
+  },
+  get: function(name) {
+    return $('#'+ name).val();
   }
-  return iS;
 }
 
-Inputs.prototype.read = function() {
-  fps = parseInt($('#fps').val());
-  w = parseInt($('#w').val());
-  h = parseInt($('#h').val());
-  seed = $('#preSeed').val();
-  maxClumps = parseInt($('#maxClumps').val());
-  clumpSize = parseInt($('#clumpSize').val());
-}
-
-Inputs.prototype.get = function(name) {
-  return $('#'+ name).val();
-}
-
-function Anim(inputs, automaton) {
+function Anim(canvas_id) {
+  this.canvas_id = canvas_id;
   this.interval = 0;
-  this.inputs = inputs;
-  this.automaton = automaton;
+  this.playing = false;
+  this.inputs = new Inputs().read();
+  this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed),
   this.liveCellCounter = $('#liveCellCount');
 }
 
-Anim.prototype.start = function() {
-  var self = this;
-  this.interval = setInterval(function() {
-    self.automaton.update().draw();
-    self.liveCellCounter.text(self.automaton.liveCellCount());
-  }, 1000/self.inputs.get('fps'));
-},
+Anim.prototype = {
+  start: function() {
+    var self = this, cellCount = 0;
+    this.interval = setInterval(function() {
+      self.automaton.update().draw();
+      cellCount = self.automaton.liveCellCount();
+      self.liveCellCounter.text(cellCount);
+      if (cellCount == 0) this.stop();
+    }, 1000 / this.fps);
+    this.playing = true;
+  },
+  stop: function() {
+    clearInterval(this.interval);
+    this.interval = 0;
+    this.playing = false;
+  },
+  toggle: function() {
+    this.inputs.read();
+    this.playing ? this.stop() : this.start();
+  },
+  reset: function() {
+    this.stop();
+    this.inputs.read();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed).draw();
+    this.liveCellCounter.text(this.automaton.liveCellCount());
+  },
+  clear: function() {
+    this.stop();
+    this.inputs.read();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h).draw();
+    this.liveCellCounter.text(this.automaton.liveCellCount());
+  },
+  update: function() {
+    this.inputs.read();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed).draw();
+    this.liveCellCounter.text(this.automaton.liveCellCount());
+  },
+  random: function() {
+    this.stop();
+    this.inputs.read();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h).randomSeed(this.inputs.maxClumps, this.inputs.clumpSize).draw();
+    this.liveCellCounter.text(this.automaton.liveCellCount());
+  },
+  preSeed: function() {
+    this.stop();
+    this.inputs.read();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed).draw();
+  },
+  toggleCell: function(e, canvas) {
+    var canvas = $(canvas),
+        x = Math.floor((e.pageX - canvas.offset().left) / this.automaton.unit);
+        y = Math.floor((e.pageY - canvas.offset().top) / this.automaton.unit);
+        cell = this.automaton.getCell(x, y);
 
-Anim.prototype.stop = function() {
-  clearInterval(this.interval);
-  this.interval = 0;
+    cell.alive = !cell.alive;
+    this.automaton.draw();
+    this.liveCellCounter.text(this.automaton.liveCellCount());
+
+    if (cell.alive) c_log(x, y);
+  },
+  moveClump: function(direction) {
+    this.automaton.moveClump(direction);
+  }
 }
 
 $(function() {
-  var inputs    = new Inputs(),
-      w         = inputs.get('w') || 40,
-      h         = inputs.get('h') || 30,
-      canvas_id = inputs.get('canvas_id') || 'grid',
-      maxClumps = inputs.get('maxClumps') || 30,
-      clumpSize = inputs.get('clumpSize') || 40,
-      fps       = inputs.get('fps') || 10,
-      seed      = Automaton.seeds[inputs.get('preSeed')],
+  var canvas_id = 'grid',
       storage   = new Storage('conways'),
-      automaton = new Automaton(canvas_id, inputs.get('w'), inputs.get('h'), seed),
-      anim      = new Anim(inputs, automaton);
-      
+      anim      = new Anim(canvas_id);
+  
   $('#start').click(function() { anim.start(); });
   $('#stop').click(function() { anim.stop(); });
   
   $('#reset').click(function() {
-    anim.stop();
-    anim.automaton = new Automaton(canvas_id, inputs.get('w'), inputs.get('h'), seed).draw();
-    anim.liveCellCounter.text(anim.automaton.liveCellCount());
+    anim.reset();
   });
   
   $('#update').submit(function() {
-    inputs.read();
-    anim.automaton = new Automaton(canvas_id, inputs.get('w'), inputs.get('h'), seed).draw();
-    anim.liveCellCounter.text(anim.automaton.liveCellCount());
+    anim.update();
     return false;
   });
   
   $('#clear').click(function() {
-    anim.stop();
-    inputs.read();
-    anim.automaton = new Automaton(canvas_id, inputs.get('w'), inputs.get('h')).draw();
-    anim.liveCellCounter.text(anim.automaton.liveCellCount());
+    anim.clear();
   });
   
   // randomly seed the grid
   $('#random').click(function() {
-    anim.stop();
-    inputs.read();
-    anim.automaton = new Automaton(canvas_id, inputs.get('w'), inputs.get('h'))
-                              .randomSeed(inputs.get('maxClumps'), inputs.get('clumpSize'))
-                              .draw();
-    anim.liveCellCounter.text(anim.automaton.liveCellCount());
+    anim.random();
   });
   
   $('#save').click(function() {
     anim.stop();
-    inputs.read();
     storage.save('getSeed', anim.automaton.getSeed());
-    storage.save('inputState', inputs.state());
+    storage.save('inputState', anim.inputs.state());
   });
   
   $('#preSeed').change(function() {
-    anim.stop();
-    storage.save('preSeed', Automaton.seeds[$('#preSeed').val()]);
-    seed = Automaton.seeds[inputs.get('preSeed')];
-    anim.automaton = new Automaton(canvas_id, inputs.get('w'), inputs.get('h'), seed).draw();
+    anim.preSeed();
   });
   
   // toggle individual cells
   $('#grid').click(function(e) {
-    var canvas = $(this),
-        x = Math.floor((e.pageX - canvas.offset().left) / anim.automaton.unit);
-        y = Math.floor((e.pageY - canvas.offset().top) / anim.automaton.unit);
-        cell = automaton.getCell(x, y);
-    
-    cell.alive = !cell.alive;
-    anim.automaton.draw();
-    anim.liveCellCounter.text(anim.automaton.liveCellCount());
-    
-    if (cell.alive) c_log(x, y);
+    anim.toggleCell(e, this);
   });
   
+  $(document).keyup(function(e) {
+    var cmd = keyCodeDirectionMapping[e.which];
+    
+    switch(cmd) {
+      case 'spacebar':
+        anim.toggle();
+        e.preventDefault();
+        break;
+      case 's':
+        anim.preSeed();
+        break;
+      case 'c':
+        anim.clear();
+        break;
+      case 'left': case 'above': case 'right': case 'below':
+        anim.moveClump(cmd);
+        e.preventDefault();
+        break;
+    }
+  });
   
-  inputs.read();
+  var keyCodeDirectionMapping = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 83: 's' }
 });
 
 function c_log() {
