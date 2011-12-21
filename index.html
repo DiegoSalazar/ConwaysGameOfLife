@@ -3,13 +3,16 @@
   <head>
     <title>Conway's Game of Life</title>
     <style type="text/css">
-      #wrap { width: 44%; margin:20px 0; }
-      #grid { border:1px solid black; margin: 20px auto; overflow: hidden; display: block; }
+      #wrap { margin:20px; }
+      #grid { border:1px solid black; overflow: hidden; display: block; float: left; }
+      #controls { float: right; width:33% } 
       .cell { float: left; }
       .alive { background: #000; }
       .dead { background: #fff; }
+      button { margin-bottom:5px;}
       form { margin-top: 10px; }
       label { display: block; margin-bottom: 5px;}
+      p { margin: 0 0 10px 0;}
     </style>
     
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
@@ -17,46 +20,56 @@
   </head>
   <body>
     <div id="wrap">
+        <h1>Conway's Game of Life</h1>
+        
         <canvas id="grid"></canvas>
-        <button id="start">Start</button>
-        <button id="stop">Stop</button>
-        <button id="reset">Reset</button>
-        <button id="clear">Clear</button>
-        <button id="random">Random Seed</button>
-        <button id="save">Save</button>
         
-        # Live Cells: <span id="liveCellCount">0</span>
+        <div id="controls">
+          <p># Live Cells: <span id="liveCellCount">0</span></p>
+          
+          <button id="start">Start (space)</button>
+          <button id="stop">Stop (space)</button>
+          <button id="reset">Reset (r)</button>
+          <button id="clear">Clear (c)</button>
+          <button id="random">Random Seed (s)</button>
+          <button id="save">Save</button>
         
-        <form id="update" action="" method="">
-          <label>
-            PreSeed: 
-            <select id="preSeed">
-              <option selected="selected" value="gosper">Gosper's Glider Gun</option>
-              <option value="sword">Sword</option>
-            </select>
-          </label>
-          <label>
-            FPS: 
-            <input type="text" id="fps" value="30" />
-          </label>
-          <label>
-            Width: 
-            <input type="text" id="w" value="25" />
-          </label>
-          <label>
-            Height: 
-            <input type="text" id="h" value="25" />
-          </label>
-          <label>
-            Max Seed Clumps: 
-            <input type="text" id="maxClumps" value="30" />
-          </label>
-          <label>
-            Max Clump Size: 
-            <input type="text" id="clumpSize" value="40" />
-          </label>
-          <input type="submit" value="Update" />
-        </form>
+          <form id="update" action="" method="">
+            <label>
+              PreSeed: 
+              <select id="preSeed">
+                <option selected="selected" value="gosper">Gosper's Glider Gun</option>
+                <option value="sword">Sword</option>
+                <option value="rorschach">Rorschach</option>
+              </select>
+            </label>
+            <label>
+              FPS: 
+              <input type="text" id="fps" value="30" />
+            </label>
+            <label>
+              Width: 
+              <input type="text" id="w" value="50" />
+            </label>
+            <label>
+              Height: 
+              <input type="text" id="h" value="50" />
+            </label>
+            <label>
+              Unit: 
+              <input type="text" id="unit" value="10" />
+            </label>
+            <label>
+              Max Seed Clumps: 
+              <input type="text" id="maxClumps" value="30" />
+            </label>
+            <label>
+              Max Clump Size: 
+              <input type="text" id="clumpSize" value="40" />
+            </label>
+            <input type="submit" value="Update" />
+          </form>
+        </div>
     </div>
   </body>
 </html>

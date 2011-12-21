@@ -39,10 +39,10 @@ $.cookie = function() {
 }  
 
 // represents the grid, updates cells state and draws
-function Automaton(canvas_id, w, h, seed, color) {   
+function Automaton(canvas_id, w, h, unit, seed, color) {   
   this.w = w;
   this.h = h;
-  this.unit = 10;
+  this.unit = unit || 10;
   this.seed = Automaton.seeds[seed];
   this.grid = [];
   this.strokeColor = color || 'black';
@@ -53,7 +53,7 @@ function Automaton(canvas_id, w, h, seed, color) {
   
   // build grid and add cells to the it
   this.traverseGrid(function(cell, x, y) {
-    this.grid[x][y] = new Cell(x, y, this.dropSeed(x, y-15), this);    
+    this.grid[x][y] = new Cell(x, y, this.dropSeed(x, y), this);    
   }, function(x) { // this callback runs first
     this.grid[x] = [];
   }).draw();
@@ -84,7 +84,9 @@ Automaton.seeds = {
   'pulsar' : [],
   'lwss' : [],
   'diehard' : [],
-  'acorn' : []
+  'acorn' : [],
+  // custom seeds by diego!
+  'rorschach': [[43, 49],[44, 49],[44, 48],[43, 48],[45, 47],[46, 48],[46, 49],[47, 49],[47, 48]]
 }
 
 Automaton.prototype = {
@@ -302,23 +304,25 @@ Storage.prototype = {
   }
 }
 
-function Inputs() {
-  this.names = ['fps', 'w', 'h', 'maxClumps', 'clumpSize', 'preSeed'];
+function Inputs(anim) {
+  this.anim = anim;
 }
+Inputs.names = ['fps', 'w', 'h', 'unit', 'maxClumps', 'clumpSize', 'preSeed'];
+Inputs.codeMap = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 82: 'r', 83: 's' };
 
 Inputs.prototype = {
   state: function() {
     var iS = {}
-    for (var i = 0, len = Inputs.length; i < len; i++) {
-      var name = Inputs[i];
+    for (var i = 0, len = Inputs.names.length; i < len; i++) {
+      var name = Inputs.names[i];
       if ($('#'+ name).val) 
         iS[name] = parseInt($('#'+ name).val()); 
     }
     return iS;
   },
   read: function() {
-    for (var i = 0, len = this.names.length; i < len; i++) {
-      var name = this.names[i],
+    for (var i = 0, len = Inputs.names.length; i < len; i++) {
+      var name = Inputs.names[i],
           val = this.get(name);
       if (val) this[name] = isNaN(val) ? val : parseInt(val);
     }
@@ -327,6 +331,33 @@ Inputs.prototype = {
   },
   get: function(name) {
     return $('#'+ name).val();
+  },
+  bindKeyboard: function() {
+    var self = this;
+    $(document).keyup(function(e) {
+      var cmd = Inputs.codeMap[e.which];
+
+      switch(cmd) {
+        case 'spacebar':
+          self.anim.toggle();
+          e.preventDefault();
+          break;
+        case 's':
+          self.anim.random();
+          break;
+        case 'c':
+          self.anim.clear();
+          break;
+        case 'r':
+          self.anim.reset();
+          break;
+        case 'left': case 'above': case 'right': case 'below':
+          self.anim.moveClump(cmd);
+          e.preventDefault();
+          break;
+      }
+      return false;
+    });
   }
 }
 
@@ -334,20 +365,22 @@ function Anim(canvas_id) {
   this.canvas_id = canvas_id;
   this.interval = 0;
   this.playing = false;
-  this.inputs = new Inputs().read();
-  this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed),
+  this.inputs = new Inputs(this).read();
+  this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed),
   this.liveCellCounter = $('#liveCellCount');
 }
 
 Anim.prototype = {
   start: function() {
     var self = this, cellCount = 0;
+    
     this.interval = setInterval(function() {
       self.automaton.update().draw();
       cellCount = self.automaton.liveCellCount();
       self.liveCellCounter.text(cellCount);
       if (cellCount == 0) this.stop();
     }, 1000 / this.fps);
+    
     this.playing = true;
   },
   stop: function() {
@@ -362,30 +395,31 @@ Anim.prototype = {
   reset: function() {
     this.stop();
     this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed).draw();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed).draw();
     this.liveCellCounter.text(this.automaton.liveCellCount());
   },
   clear: function() {
     this.stop();
     this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h).draw();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit).draw();
     this.liveCellCounter.text(this.automaton.liveCellCount());
   },
   update: function() {
     this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed).draw();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed).draw();
     this.liveCellCounter.text(this.automaton.liveCellCount());
   },
   random: function() {
     this.stop();
     this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h).randomSeed(this.inputs.maxClumps, this.inputs.clumpSize).draw();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit)
+                         .randomSeed(this.inputs.maxClumps, this.inputs.clumpSize).draw();
     this.liveCellCounter.text(this.automaton.liveCellCount());
   },
   preSeed: function() {
     this.stop();
     this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.preSeed).draw();
+    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed).draw();
   },
   toggleCell: function(e, canvas) {
     var canvas = $(canvas),
@@ -445,28 +479,7 @@ $(function() {
     anim.toggleCell(e, this);
   });
   
-  $(document).keyup(function(e) {
-    var cmd = keyCodeDirectionMapping[e.which];
-    
-    switch(cmd) {
-      case 'spacebar':
-        anim.toggle();
-        e.preventDefault();
-        break;
-      case 's':
-        anim.preSeed();
-        break;
-      case 'c':
-        anim.clear();
-        break;
-      case 'left': case 'above': case 'right': case 'below':
-        anim.moveClump(cmd);
-        e.preventDefault();
-        break;
-    }
-  });
-  
-  var keyCodeDirectionMapping = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 83: 's' }
+  anim.inputs.bindKeyboard();
 });
 
 function c_log() {

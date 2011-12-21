@@ -2,9 +2,9 @@
 * http://en.wikipedia.org/wiki/Conway's_Game_of_Life
 
 Open index.html in a canvas compatible web browser and click the Start button.
-Before clicking Start, you can toggle each cell by clicking on it, this let's you customize the "seed";
+Before clicking Start, you can toggle each cell by clicking on it, this let's you customize the "seed"
+Or, choose a predefined seed from the drop down menu.
 
 TODOS:
-  1. form controls need reworking.
-  2. ability to save state or load predefined seeds.
-  3. Random colors? possibly based on numLiveNeighbors.
+  1. ability to save state
+  2. fix the moveClump method
