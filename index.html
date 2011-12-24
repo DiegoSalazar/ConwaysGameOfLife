@@ -3,19 +3,28 @@
   <head>
     <title>Conway's Game of Life</title>
     <style type="text/css">
+      body { font-size:100%; font-family: Verdana, Arial, sans-serif; color:#333; background: #ebebeb }
+      button { margin:0;}
+      form { margin-top: 10px; }
+      input[type="text"], select { float:right; }
+      label { display: block; margin-bottom: 5px;}
+      ul { margin:0; padding:0 0 0 10px; }
+      p { margin: 0 0 10px 0;}
+      div { margin:0 0 10px 0; }
       #wrap { margin:20px; }
-      #grid { border:1px solid black; overflow: hidden; display: block; float: left; }
+      #grid { border:1px solid black; overflow: hidden; display: block; float: left; background: #fff; }
       #controls { float: right; width:33% } 
+      #desc, #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
+      #desc { border-color: #ddd; }
+      #readout { border-color: #9999dd; }
+      #btns { list-style:none; margin:0;padding:0;}
+      #btns li { padding:5px; background:#fff; margin:0 0 5px 0;}
       .cell { float: left; }
       .alive { background: #000; }
       .dead { background: #fff; }
-      button { margin-bottom:5px;}
-      form { margin-top: 10px; }
-      label { display: block; margin-bottom: 5px;}
-      p { margin: 0 0 10px 0;}
     </style>
     
-    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="jquery.js"></script>
     <script type="text/javascript" src="conwaysgame.js"></script>
   </head>
   <body>
@@ -25,14 +34,31 @@
         <canvas id="grid"></canvas>
         
         <div id="controls">
-          <p># Live Cells: <span id="liveCellCount">0</span></p>
+          <div id="desc">
+            <ul>
+              <li>Use the keyboard or buttons to control the game</li>
+              <li>Click individual cells on/off</li>
+              <li>Hold down the mouse and trace multiple cells</li>
+            </ul>
+          </div>
           
-          <button id="start">Start (space)</button>
-          <button id="stop">Stop (space)</button>
-          <button id="reset">Reset (r)</button>
-          <button id="clear">Clear (c)</button>
-          <button id="random">Random Seed (s)</button>
-          <button id="save">Save</button>
+          <div id="readout">
+            <p>Elapsed: <span id="clock">00:00:00</span></p>
+            <p>Live Cells: <span id="liveCellCount">0</span></p>
+            <p>Max Population #: <span id="maxPopulationNum">0</span></p>
+          </div>
+          
+          <ul id="btns">
+            <li>
+              <button id="toggle">Play (space)</button><button id="reset">Reset (r)</button>
+            </li>
+            <li>
+              <button id="center" title="Press the letter o to center the cells">Center (o)</button>
+            </li>
+            <li>
+              <button id="clear">Clear (c)</button><button id="random">Random Seed (s)</button><button id="save">Save</button>
+            </li>
+          </ul>
         
           <form id="update" action="" method="">
             <label>
@@ -41,6 +67,14 @@
                 <option selected="selected" value="gosper">Gosper's Glider Gun</option>
                 <option value="sword">Sword</option>
                 <option value="rorschach">Rorschach</option>
+              </select>
+            </label>
+            <label>
+              Render Style: 
+              <select id="renderStyle" />
+                <option selected="selected" value="block">Blocky</option>
+                <option value="moogily">Googily Moogily</option>
+                <option value="fadeIn">Ghosty</option>
               </select>
             </label>
             <label>

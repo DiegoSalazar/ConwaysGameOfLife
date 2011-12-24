@@ -39,24 +39,21 @@ $.cookie = function() {
 }  
 
 // represents the grid, updates cells state and draws
-function Automaton(canvas_id, w, h, unit, seed, color) {   
+function Automaton(canvas, w, h, unit, seed, renderOptions) {
   this.w = w;
   this.h = h;
   this.unit = unit || 10;
   this.seed = Automaton.seeds[seed];
   this.grid = [];
-  this.strokeColor = color || 'black';
-  this.canvas = $('#'+ canvas_id).attr({ width: w * this.unit +'px', height: h * this.unit +'px' })[0];
-  
-  if (this.canvas.getContext) this.ctx = this.canvas.getContext('2d');
-  else return alert('OMG This browser like totally doesn\'t support Canvas. You should like upgrade and stuff.');
+  this.liveCells = [];
+  this.renderer = new Renderer(canvas, this, renderOptions);
   
   // build grid and add cells to the it
   this.traverseGrid(function(cell, x, y) {
     this.grid[x][y] = new Cell(x, y, this.dropSeed(x, y), this);    
   }, function(x) { // this callback runs first
     this.grid[x] = [];
-  }).draw();
+  });
 }
 
 // helps us find a cell's neighbors
@@ -73,9 +70,9 @@ Automaton.adjust = {
 }
 // http://en.wikipedia.org/wiki/Conway's_Game_of_Life
 Automaton.seeds = {
-  'gosper' : [[2,6],[2,7],[3,6],[3,7],[12,6],[12,7],[12,8],[13,5],[13,9],[14,4],[14,10],[15,4],[15,10],
-              [16,7],[17,5],[17,9],[18,6],[18,7],[18,8],[19,7],[22,4],[22,5],[22,6],[23,4],[23,5],[23,6],[24,3],[24,7],
-              [26,2],[26,3],[26,7],[26,8],[36,4],[36,5],[37,4],[37,5]], // thanks 535480/james from stackoverflow
+  'gosper' : [[2, 6],[2, 7],[3, 6],[3, 7],[12,6],[12,7],[12,8],[13,5],[13,9],[14,4],[14,10],[15,4],[15,10],
+              [16,7],[17,5],[17,9],[18,6],[18,7],[18,8],[19,7],[22,4],[22,5],[22,6],[23, 4],[23,5],[23, 6],
+              [24,3],[24,7],[26,2],[26,3],[26,7],[26,8],[36,4],[36,5],[37,4],[37,5]], // thanks 535480/james from stackoverflow
   'sword' : [[26,10], [26,11], [26,12], [26,13], [26,14], [26,15], [26,16], [26,18], [26,19], [26,20],
              [26,23], [26,24], [26,25], [26,30], [26,31], [26,32], [26,33], [26,34], [26,35]],
   'spaceship' : [],
@@ -85,19 +82,11 @@ Automaton.seeds = {
   'lwss' : [],
   'diehard' : [],
   'acorn' : [],
-  // custom seeds by diego!
+  // custom seeds I made!
   'rorschach': [[43, 49],[44, 49],[44, 48],[43, 48],[45, 47],[46, 48],[46, 49],[47, 49],[47, 48]]
 }
 
 Automaton.prototype = {
-  dropSeed: function(x, y) {
-    if (!this.seed) return false;
-    for (var i = 0, len = this.seed.length; i < len; i++) {
-      if (typeof(this.seed[i]) == 'object' && x == this.seed[i][0] && y == this.seed[i][1])
-        return true;
-    }
-    return false;
-  },
   traverseGrid: function(yCallback, xCallback) {
     for (var x = 0; x < this.w; x++) {
       if (typeof xCallback == 'function') 
@@ -107,31 +96,30 @@ Automaton.prototype = {
     }
     return this;
   },
-  getCellAdjacentTo: function(cell, where) {
-    var x = cell.x + Automaton.adjust[where]['x'],
-        y = cell.y + Automaton.adjust[where]['y'];
-    return this.grid[x][y];
+  dropSeed: function(x, y) {
+    if (!this.seed) return false;
+    for (var i = 0, len = this.seed.length; i < len; i++) {
+      if (typeof(this.seed[i]) == 'object' && x == this.seed[i][0] && y == this.seed[i][1])
+        return true;
+    }
+    return false;
   },
   update: function() {
-    this.traverseGrid(function(cell, x, y) {
+    return this.traverseGrid(function(cell, x, y) {
       cell.flagYourselfForDeathMaybe();
 
     }).traverseGrid(function(cell, x, y) {
       if (cell.flaggedForDeath) {
-        cell.alive = false;
-        cell.flaggedForDeath = false;
+        cell.kill().flaggedForDeath = false;
       } else if (!cell.alive && cell.flaggedForRevive) {
-        cell.alive = true;
-        cell.flaggedForRevive = false;
+        cell.revive().flaggedForRevive = false;
       }
     });
-    return this;
   },
   draw: function() {
-    this.traverseGrid(function(cell, x, y) {
-      cell.draw();
+    return this.traverseGrid(function(cell, x, y) {
+      this.renderer.draw(cell); 
     });
-    return this;
   },
   // randomly seed clumps of cells
   randomSeed: function(maxClumps, maxClumpSize) {
@@ -183,57 +171,156 @@ Automaton.prototype = {
     });
     return seed;
   },
-  moveClump: function(direction) {
-    var cells = [];
-    
+  getLiveCells: function() {
+    this.liveCells = [];
     this.traverseGrid(function(cell, x, y) {
-      var newX = cell.x += Automaton.adjust[direction]['x'],
-          newY = cell.y += Automaton.adjust[direction]['y'];
+      if (cell.alive) this.liveCells.push(cell);
+    });
+    return this.liveCells;
+  },
+  moveClump: function(where) {
+    var cells = this.getLiveCells(), movedCells = [];
+    
+    for (var i = 0, len = cells.length; i < len; i++) {
+      var cell = cells[i].kill();
+          newX = cell.x + Automaton.adjust[where]['x'],
+          newY = cell.y + Automaton.adjust[where]['y'];
       
-      this.grid[x][y] = null;
-      
-    }).traverseGrid(function(cell, x, y) {
+      movedCells.push(new Cell(newX, newY, true, this));
+    }
+    
+    return this.traverseGrid(function(cell, x, y) {
+      for (var i = 0, len = movedCells.length; i < len; i++) {
+        var c = movedCells[i];
+        if (c.x == x && c.y == y) this.grid[x][y] = c;
+      }
+    }).draw();
+  },
+  center: function() {
+    var cells = this.getLiveCells(), liveXs = [], liveYs = [], minX, maxX, minY, maxY, tx, ty;
+    // get unique live points
+    for (var i = 0, len = cells.length; i < len; i++) {
+      var cell = cells[i];
+      if (liveXs.indexOf(cell.x) == -1) liveXs.push(cell.x);
+      if (liveYs.indexOf(cell.y) == -1) liveYs.push(cell.y);
+    }
+    
+    // get boundaries
+    minX = Math.min.apply(Math, liveXs); maxX = Math.max.apply(Math, liveXs);
+    minY = Math.min.apply(Math, liveYs); maxY = Math.max.apply(Math, liveYs);
+    
+    // translate each point by
+    tx = Math.floor(((minX + (this.w - maxX)) / 2) - minX);
+    ty = Math.floor(((minY + (this.h - maxY)) / 2) - minY);
+    
+    return this.traverseGrid(function(cell, x, y) {
       for (var i = 0, len = cells.length; i < len; i++) {
-        var cell = cells[i]
-        if (x == cell.x && y == cell.y)
-          this.grid[x][y] = cell;
+        if (cells[i] == cell) {
+          var newX = x + tx, newY = y + ty;
+          cell.kill();
+          this.grid[newX][newY] = new Cell(newX, newY, true, this);
+        }
       }
     }).draw();
   }
 }
 
+function Renderer(canvas, automaton, options) {
+  this.options = $.extend({ style: 'block' }, options);
+  this.automaton = automaton;
+  this.increment = 0;
+  this.canvas = canvas.attr({ width: automaton.w * automaton.unit +'px', height: automaton.h * automaton.unit +'px' })[0];
+  
+  if (this.canvas.getContext) 
+    this.ctx = this.canvas.getContext('2d');
+  else 
+    return alert('OMG This browser like totally doesn\'t support Canvas. You should like upgrade and stuff.');
+}
+
+Renderer.prototype = {
+  draw: function(cell) {
+    this.styles[this.options.style].call(this, cell);
+  },
+  styles: {
+    block: function(cell) {
+      var color = cell.lifeColor();
+
+      if (cell.alive) {
+        this.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', 1)';//'+ increment/3 +')';
+        this.ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+      } else {
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineWidth = 0.3;
+        this.ctx.strokeRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        this.ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+      }
+      this.ctx.fill();
+      this.ctx.stroke();
+    },
+    moogily: function(cell) {
+      var color = cell.lifeColor(),
+          x = cell.x * cell.unit + cell.unit / 2,
+          y = cell.y * cell.unit + cell.unit / 2;
+      
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, cell.unit/2, 0, Math.PI * 2, true);
+      
+      if (cell.alive) {
+        this.ctx.fillStyle = 'rgba('+ rand(color[0]) +', '+ rand(color[1]) +', '+ rand(color[2]) +', '+ rand(4) +')';//'+ increment/3 +')';;
+        this.ctx.lineWidth = rand(8);
+        this.ctx.strokeStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ Math.random() +')';//'+ increment/3 +')';
+      } else {
+        this.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', .5)';//'+ increment/3 +')';
+        this.ctx.strokeStyle = 'white';
+        this.ctx.lineWidth = .2;
+      }
+      
+      this.ctx.fill();
+      this.ctx.stroke();
+      this.ctx.closePath();
+    },
+    fadeIn: function(cell) {
+      var self = this, color = cell.lifeColor();
+      
+      if (cell.alive) {
+        clearInterval(this.fadeInterval);
+        this.fadeInterval = setInterval(function() {
+          self.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ (self.increment++)/4 +')';
+          self.ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+          self.ctx.fill();
+        }, 5);
+      } else {
+        this.ctx.fillStyle = 'white';
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineWidth = .2;
+        this.ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        this.ctx.fill();
+        this.ctx.stroke();
+      }
+    }
+  }
+}
+  
 function Cell(x, y, alive, automaton) {
   this.x = x;
   this.y = y;
   this.alive = alive;
   this.automaton = automaton;
-  this.ctx = automaton.ctx;
   this.unit = automaton.unit;
   this.flaggedForDeath = false;
   this.flaggedForRevive = false;
 }
+// arrays of rgb values [r, g, b]
+Cell.lifeColors = {
+  0: [200, 200, 255], 1: [200, 200, 200], // starved dead
+  2: [0,     0, 200],                     // happy alive
+  3: [0,   200,   0],                     // sexy alive
+  4: [200,   0,   0], 5: [180, 180, 180], // suffocated dead
+  6: [200, 200,   0], 7: [0,   200, 200], // smooshed dead
+  8: [0,     0,   0]                      // fucking dead
+}
 
 Cell.prototype = {
-  draw: function() {
-    if (this.alive) {
-      this.fadeIn();
-    } else {
-      this.ctx.strokeStyle = 'black';
-      this.ctx.lineWidth = 0.3;
-      this.ctx.strokeRect(this.x * this.unit, this.y * this.unit, this.unit, this.unit);
-      this.ctx.clearRect(this.x * this.unit, this.y * this.unit, this.unit, this.unit);
-    }
-  },
-  fadeIn: function() {
-    var self = this, increment = 0, color = this.lifeColor();
-    //clearInterval(this.fadeInterval);
-
-    //this.fadeInterval = setInterval(function() {
-      self.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', 1)';//'+ increment/3 +')';
-      self.ctx.fillRect(self.x * self.unit, self.y * self.unit, self.unit, self.unit);
-      increment++;
-    //}, 5);
-  },
   // this is where the magic happens
   flagYourselfForDeathMaybe: function(grid) {
     var num = this.numLiveNeighbors();
@@ -265,109 +352,148 @@ Cell.prototype = {
 
     return liveNeighborsCount;
   },
-  lifeColor: function() {
-    return Cell.lifeColors[this.numLiveNeighbors()];
-  }
+  notIn: function(array) {
+    for (var i = 0, len = array.length; i < len; i++) {
+      var cell = array[i];
+      if (this.x == cell.x && this.y == cell.y) return false;
+    }
+    return true;
+  },
+  lifeColor: function() { return Cell.lifeColors[this.numLiveNeighbors()]; },
+  toggle:    function() { this.alive = !this.alive; return this; },
+  revive:    function() { this.alive = true; return this; },
+  kill:      function() { this.alive = false; return this; }
 }
 
-// arrays of rgb values [r, g, b]
-Cell.lifeColors = {
-  0: [200, 200, 255], 1: [200, 200, 200], // starved dead
-  2: [0, 0, 200],                         // happy alive
-  3: [0, 200, 0],                         // sexy alive
-  4: [200, 0, 0],   5: [180, 180, 180],   // suffocated dead
-  6: [200, 200, 0], 7: [0, 200, 200],     // smooshed dead
-  8: [0, 0, 0]                            // fucking dead
-}
-
-function Storage(name) {
+function Storage(name, type) {
   this.name = name;
-  this.container = function() {
-    var storageType = 'cookieStore',
-        types = { 'cookieStore': $.cookie };
-    
-    return types[storageType];
-  }
-  return this;
+  this.storageType = type || 'cookieStore';
+  this.container = Storage.types[this.storageType];
 }
+Storage.types = { 'cookieStore': $.cookie, 'localStore': null, 'ajax': null };
 
 Storage.prototype = {
   save: function(name, data) {
-    c_log(name, data);
+    c_log(this.name, name, data);
+    // container must have a common interface e.g. cookieStore, localstore, ajax
     this.container(name, data);
+    c_log('saved', this.container(name))
     return true;
   },
   read: function(name) {
-    c_log('read', name);
+    c_log(this.name, ':read', name);
+    // container must have a common interface e.g. cookieStore, localstore, ajax
     this.container(name);
     return true;
   }
 }
 
-function Inputs(anim) {
-  this.anim = anim;
+// handles input/output for UI elements
+function IO(anim) {
+  var self = this;
+  this.anim          = anim;
+  this.toggle        = $('#toggle');
+  this.liveCellCount = $('#liveCellCount');
+  this.clock         = $('#clock');
+  this.counter       = 0;
 }
-Inputs.names = ['fps', 'w', 'h', 'unit', 'maxClumps', 'clumpSize', 'preSeed'];
-Inputs.codeMap = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 82: 'r', 83: 's' };
+IO.inputIds = ['fps', 'w', 'h', 'unit', 'maxClumps', 'clumpSize', 'preSeed', 'renderStyle'];
+IO.codeMap = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 82: 'r', 83: 's' };
 
-Inputs.prototype = {
+IO.prototype = {
   state: function() {
     var iS = {}
-    for (var i = 0, len = Inputs.names.length; i < len; i++) {
-      var name = Inputs.names[i];
-      if ($('#'+ name).val) 
-        iS[name] = parseInt($('#'+ name).val()); 
+    for (var i = 0, len = IO.inputIds.length; i < len; i++) {
+      var id = IO.inputIds[i];
+      if ($('#'+ id).val) 
+        iS[id] = parseInt($('#'+ id).val()); 
     }
     return iS;
   },
   read: function() {
-    for (var i = 0, len = Inputs.names.length; i < len; i++) {
-      var name = Inputs.names[i],
-          val = this.get(name);
-      if (val) this[name] = isNaN(val) ? val : parseInt(val);
+    for (var i = 0, len = IO.inputIds.length; i < len; i++) {
+      var id = IO.inputIds[i], val = this.get(id);
+      if (val) this[id] = isNaN(val) ? val : parseInt(val);
     }
-
     return this;
   },
   get: function(name) {
     return $('#'+ name).val();
   },
-  bindKeyboard: function() {
+  renderOptions: function() {
+    return {
+      style: this.get('renderStyle')
+    }
+  },
+  // display elapsed time HH:MM:SS when anim is playing
+  showClock: function(playing) {
+    if (playing) {
+      var self = this;
+      this.clockInterval = setInterval(function() {
+        var now = new Date();
+        self.clock.text(formattedTime(++self.counter));
+      }, 1000);
+    } else clearInterval(this.clockInterval);
+    return this;
+  },
+  resetClock: function() {
+    this.counter = 0;
+    this.clock.text(formattedTime(0));
+    return this;
+  },
+  bindEvents: function() {
     var self = this;
+    
     $(document).keyup(function(e) {
-      var cmd = Inputs.codeMap[e.which];
+      var cmd = IO.codeMap[e.which];
 
       switch(cmd) {
-        case 'spacebar':
-          self.anim.toggle();
-          e.preventDefault();
-          break;
-        case 's':
-          self.anim.random();
-          break;
-        case 'c':
-          self.anim.clear();
-          break;
-        case 'r':
-          self.anim.reset();
-          break;
-        case 'left': case 'above': case 'right': case 'below':
-          self.anim.moveClump(cmd);
-          e.preventDefault();
-          break;
+        case 'spacebar': self.anim.toggle(); break;
+        case 's':        self.anim.random(); break;
+        case 'c':        self.anim.clear(); break;
+        case 'r':        self.anim.reset(); break;
+        case 'left': case 'above': case 'right': case 'below': self.anim.moveClump(cmd); break;
       }
       return false;
     });
+    
+    this.toggle.click(function() { self.anim.playing ? self.anim.stop() : self.anim.start(); });
+    $('#reset').click(function() { self.anim.reset(); self.resetClock(); });
+    $('#clear').click(function() { self.anim.clear(); self.resetClock(); });
+    $('#center').click(function() { self.anim.center(); self.resetClock(); });
+    $('#random').click(function() { self.anim.random(); self.resetClock(); });
+    $('#save').click(function() {
+      self.anim.stop();
+      self.anim.storage.save('getSeed', self.anim.automaton.getSeed());
+      self.anim.storage.save('inputState', self.state());
+    });
+    $('#preSeed').change(function() { self.anim.preSeed(); self.resetClock(); });
+    $('#update').submit(function() { self.anim.update(); self.resetClock(); return false; });
+    
+    // toggle individual cells by clicking and/or click dragging
+    this.anim.canvas.mousedown(function(e) {
+      self.anim.toggleCell(e, this).startCellTrace();
+    }).mouseup(function(e) {
+      self.anim.endCellTrace();
+    });
+    return this;
   }
 }
 
+// creates the gameloop and provides UI control of the automaton
 function Anim(canvas_id) {
-  this.canvas_id = canvas_id;
-  this.interval = 0;
-  this.playing = false;
-  this.inputs = new Inputs(this).read();
-  this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed),
-  this.liveCellCounter = $('#liveCellCount');
+  var self = this;
+  this.canvas    = $('#'+ canvas_id);
+  this.playing   = false;
+  this.interval  = 0;
+  this.storage   = new Storage('conways');
+  this.io        = new IO(this).read().bindEvents();
+  this.newAutomaton = function(preSeed) {
+    var automaton = new Automaton(this.canvas, this.io.w, this.io.h, this.io.unit, (preSeed || this.io.preSeed), this.io.renderOptions());
+    return automaton;
+  }
+  this.automaton = this.newAutomaton().draw();
+  this.io.anim = this; // set at the end because io needs anim.automaton
 }
 
 Anim.prototype = {
@@ -377,115 +503,116 @@ Anim.prototype = {
     this.interval = setInterval(function() {
       self.automaton.update().draw();
       cellCount = self.automaton.liveCellCount();
-      self.liveCellCounter.text(cellCount);
-      if (cellCount == 0) this.stop();
-    }, 1000 / this.fps);
+      self.io.liveCellCount.text(cellCount);
+      if (cellCount < 3) return self.stop();
+    }, 1000 / this.io.fps);
     
     this.playing = true;
+    this.io.showClock(true).toggle.text('Pause (space)');
   },
   stop: function() {
     clearInterval(this.interval);
     this.interval = 0;
     this.playing = false;
+    this.io.showClock(false).toggle.text('Play (space)');
   },
   toggle: function() {
-    this.inputs.read();
+    this.io.read();
     this.playing ? this.stop() : this.start();
   },
   reset: function() {
     this.stop();
-    this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed).draw();
-    this.liveCellCounter.text(this.automaton.liveCellCount());
+    this.io.read().resetClock();
+    this.automaton = this.newAutomaton().draw();
+    this.io.liveCellCount.text(this.automaton.liveCellCount());
   },
   clear: function() {
     this.stop();
-    this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit).draw();
-    this.liveCellCounter.text(this.automaton.liveCellCount());
+    this.io.read().resetClock();
+    this.automaton = this.newAutomaton([]).draw();
+    this.io.liveCellCount.text(this.automaton.liveCellCount());
   },
   update: function() {
-    this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed).draw();
-    this.liveCellCounter.text(this.automaton.liveCellCount());
+    this.io.read().resetClock();
+    this.automaton = this.newAutomaton().draw();
+    this.io.liveCellCount.text(this.automaton.liveCellCount());
   },
   random: function() {
     this.stop();
-    this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit)
-                         .randomSeed(this.inputs.maxClumps, this.inputs.clumpSize).draw();
-    this.liveCellCounter.text(this.automaton.liveCellCount());
+    this.io.read().resetClock();
+    this.automaton = this.newAutomaton([]).randomSeed(this.io.maxClumps, this.io.clumpSize).draw();
+    this.io.liveCellCount.text(this.automaton.liveCellCount());
   },
   preSeed: function() {
     this.stop();
-    this.inputs.read();
-    this.automaton = new Automaton(this.canvas_id, this.inputs.w, this.inputs.h, this.inputs.unit, this.inputs.preSeed).draw();
+    this.io.read().resetClock();
+    this.automaton = this.newAutomaton().draw();
   },
-  toggleCell: function(e, canvas) {
-    var canvas = $(canvas),
-        x = Math.floor((e.pageX - canvas.offset().left) / this.automaton.unit);
-        y = Math.floor((e.pageY - canvas.offset().top) / this.automaton.unit);
-        cell = this.automaton.getCell(x, y);
-
-    cell.alive = !cell.alive;
+  mouseX: function() {
+    return Math.floor((this.e.pageX - this.canvas.offset().left) / this.automaton.unit);
+  },
+  mouseY: function() {
+    return Math.floor((this.e.pageY - this.canvas.offset().top) / this.automaton.unit);
+  },
+  toggleCell: function(e) {
+    this.e = e;
+    this.tracedCells = [this.automaton.getCell(this.mouseX(), this.mouseY())];
+    
+    var x = this.mouseX(),
+        y = this.mouseY(),
+        cell = this.automaton.getCell(x, y).toggle();
+    
     this.automaton.draw();
-    this.liveCellCounter.text(this.automaton.liveCellCount());
+    this.io.liveCellCount.text(this.automaton.liveCellCount());
 
     if (cell.alive) c_log(x, y);
+    return this;
   },
-  moveClump: function(direction) {
-    this.automaton.moveClump(direction);
-  }
+  startCellTrace: function() {
+    if (this.playing) { this.stop(); this.playing = true; }
+    var self = this;
+    
+    this.canvas.mousemove(function(e) {
+      self.e = e;
+      var cell = self.automaton.getCell(self.mouseX(), self.mouseY());
+      
+      if (cell.notIn(self.tracedCells)) {
+        cell.revive();
+        self.tracedCells.push(cell);
+        self.automaton.draw();
+      }
+    });
+  },
+  endCellTrace: function() {
+    this.canvas.unbind('mousemove');
+    this.io.liveCellCount.text(this.automaton.liveCellCount());
+    if (this.playing) this.start();
+  },
+  moveClump: function(where) { this.automaton.moveClump(where); },
+  center:    function() { this.automaton.center(); }
 }
 
+// Initialization
 $(function() {
-  var canvas_id = 'grid',
-      storage   = new Storage('conways'),
-      anim      = new Anim(canvas_id);
-  
-  $('#start').click(function() { anim.start(); });
-  $('#stop').click(function() { anim.stop(); });
-  
-  $('#reset').click(function() {
-    anim.reset();
-  });
-  
-  $('#update').submit(function() {
-    anim.update();
-    return false;
-  });
-  
-  $('#clear').click(function() {
-    anim.clear();
-  });
-  
-  // randomly seed the grid
-  $('#random').click(function() {
-    anim.random();
-  });
-  
-  $('#save').click(function() {
-    anim.stop();
-    storage.save('getSeed', anim.automaton.getSeed());
-    storage.save('inputState', anim.inputs.state());
-  });
-  
-  $('#preSeed').change(function() {
-    anim.preSeed();
-  });
-  
-  // toggle individual cells
-  $('#grid').click(function(e) {
-    anim.toggleCell(e, this);
-  });
-  
-  anim.inputs.bindKeyboard();
+  new Anim('grid');
 });
+
+// utils
+function rand(num) {
+  return Math.floor(Math.random(num) * num);
+}
+
+function formattedTime(secs) {
+  var sec = secs % 60,
+      min = ((secs - sec) / 60) % 60,
+      hrs = ((secs - (sec + (min * 60))) / 3600) % 60;
+  return formatTimePart(hrs) +':'+ formatTimePart(min) +':'+ formatTimePart(sec);
+}
+
+function formatTimePart(t) {
+  return (t < 10) ? '0'+ t : t;
+}
 
 function c_log() {
   if (console.log) console.log(arguments);
-}
-
-function rand(num) {
-  return Math.floor(Math.random(num) * num);
 }
