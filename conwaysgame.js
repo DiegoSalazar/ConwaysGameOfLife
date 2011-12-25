@@ -46,6 +46,8 @@ function Automaton(canvas, w, h, unit, seed, renderOptions) {
   this.seed = Automaton.seeds[seed];
   this.grid = [];
   this.liveCells = [];
+  this.lastLiveCellNum = 0;
+  this.maxPopulation = 0;
   this.renderer = new Renderer(canvas, this, renderOptions);
   
   // build grid and add cells to the it
@@ -80,8 +82,9 @@ Automaton.seeds = {
   'beacon' : [],
   'pulsar' : [],
   'lwss' : [],
-  'diehard' : [],
+  'diehard' : [[8,2], [2,3], [3,3], [3,4], [7,4], [8,4], [9,4]],
   'acorn' : [],
+  'fpentomino': [[3, 2], [4, 2], [2, 3], [3, 3], [3,4]],
   // custom seeds I made!
   'rorschach': [[43, 49],[44, 49],[44, 48],[43, 48],[45, 47],[46, 48],[46, 49],[47, 49],[47, 48]]
 }
@@ -104,6 +107,13 @@ Automaton.prototype = {
     }
     return false;
   },
+  updateOptions: function(io) {
+    this.w = io.w;
+    this.h = io.h;
+    this.unit = io.unit;
+    this.renderer.updateOptions(this, io);
+    this.draw();
+  },
   update: function() {
     return this.traverseGrid(function(cell, x, y) {
       cell.flagYourselfForDeathMaybe();
@@ -117,9 +127,62 @@ Automaton.prototype = {
     });
   },
   draw: function() {
+    this.renderer.clear();
     return this.traverseGrid(function(cell, x, y) {
-      this.renderer.draw(cell); 
+      if (cell.alive) this.renderer.draw(cell.update());
     });
+  },
+  liveCellCount: function() {
+    this.lastLiveCellNum = this.liveCellNum; 
+    this.liveCellNum = 0;
+    this.traverseGrid(function(cell, x, y) {
+      if (cell.alive) this.liveCellNum++;
+    });
+    return this.liveCellNum;
+  },
+  evolving: function() {
+    return this.lastLiveCellNum != this.liveCellNum;
+  },
+  getOldestCell: function() {
+    var cells = this.getLiveCells();
+    
+    for (var i = 0, len = cells.length; i < len; i++) {
+      var cell = cells[i],
+          age = this.oldestCell ? this.oldestCell.age : 0;
+      if (cell.age > age) this.oldestCell = cell;
+    }
+    return this.oldestCell || {age:0};
+  },
+  getMaxPopulation: function(liveCellCount) {
+    return this.maxPopulation = (liveCellCount > this.maxPopulation) ? liveCellCount : this.maxPopulation;
+  },
+  // find a cell by the collision of a click with a cell on the coordinate space
+  getCell: function(x, y) {
+    return this.grid[x][y];
+  },
+  // return a seed array from the state of the grid
+  getSeed: function() {
+    var seed = [];
+    this.traverseGrid(function(cell, x, y) {
+      if (cell.alive) seed.push([x, y]);
+    });
+    return seed;
+  },
+  getLiveCells: function() {
+    this.liveCells = [];
+    this.traverseGrid(function(cell, x, y) {
+      if (cell.alive) this.liveCells.push(cell);
+    });
+    return this.liveCells;
+  },
+  getStats: function(cellCount) {
+    var oldestCell = this.getOldestCell();
+    return { 
+      liveCellCount: cellCount, 
+      maxPopulation: this.getMaxPopulation(cellCount),
+      oldestCell:    oldestCell.age + ' <code>{x: '+ oldestCell.x +', y:'+ oldestCell.y +'}</code>',
+      evolving:      this.evolving() ? 'Evolving' : 'Stabilized'
+    }
   },
   // randomly seed clumps of cells
   randomSeed: function(maxClumps, maxClumpSize) {
@@ -151,32 +214,6 @@ Automaton.prototype = {
           this.grid[x][y] = cell;
       }
     });
-  },
-  liveCellCount: function() {
-    var liveCellCount = 0;
-    this.traverseGrid(function(cell, x, y) {
-      if (cell.alive) liveCellCount++;
-    });
-    return liveCellCount;
-  },
-  // find a cell by the collision of a click with a cell on the coordinate space
-  getCell: function(x, y) {
-    return this.grid[x][y];
-  },
-  // return a seed array from the state of the grid
-  getSeed: function() {
-    var seed = [];
-    this.traverseGrid(function(cell, x, y) {
-      if (cell.alive) seed.push([x, y]);
-    });
-    return seed;
-  },
-  getLiveCells: function() {
-    this.liveCells = [];
-    this.traverseGrid(function(cell, x, y) {
-      if (cell.alive) this.liveCells.push(cell);
-    });
-    return this.liveCells;
   },
   moveClump: function(where) {
     var cells = this.getLiveCells(), movedCells = [];
@@ -222,6 +259,15 @@ Automaton.prototype = {
         }
       }
     }).draw();
+  },
+  lineSeed: function(vertical) {
+    var endPoint = Math.floor(vertical ? this.w : this.h),
+        seedArray = [];
+    
+    for (var i = 0; i < endPoint; i++)
+      seedArray.push(vertical ? [Math.floor(this.h/2), i] : [i, Math.floor(this.w/2)]);
+      
+    return seedArray;
   }
 }
 
@@ -229,7 +275,8 @@ function Renderer(canvas, automaton, options) {
   this.options = $.extend({ style: 'block' }, options);
   this.automaton = automaton;
   this.increment = 0;
-  this.canvas = canvas.attr({ width: automaton.w * automaton.unit +'px', height: automaton.h * automaton.unit +'px' })[0];
+  this.$canvas = canvas.attr({ width: automaton.w * automaton.unit +'px', height: automaton.h * automaton.unit +'px' });
+  this.canvas = this.$canvas[0];
   
   if (this.canvas.getContext) 
     this.ctx = this.canvas.getContext('2d');
@@ -238,64 +285,91 @@ function Renderer(canvas, automaton, options) {
 }
 
 Renderer.prototype = {
+  updateOptions: function(automaton, io) {
+    this.automaton = automaton;
+    this.$canvas.attr({ width: automaton.w * automaton.unit +'px', height: automaton.h * automaton.unit +'px' });
+    this.options.style = io.renderStyle;
+  },
+  clear: function() {
+    var ctx = this.ctx,
+        u = this.automaton.unit,
+        w = this.automaton.w * u,
+        h = this.automaton.h * u;
+    
+    // clear the entire grid
+    ctx.fillStyle = 'white';
+    ctx.clearRect(0, 0, w * u, h * u);
+    ctx.fill();
+    ctx.beginPath();
+    
+    // draw vertical grid lines
+    for (var x = 1; x < w; x += u) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+    // draw horizontal grid lines
+    for (var y = 1; y < h; y += u) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = .05;
+    ctx.stroke();
+    ctx.closePath();
+  },
   draw: function(cell) {
-    this.styles[this.options.style].call(this, cell);
+    this.ctx.beginPath();
+    this.styles[this.options.style].call(this, cell, this.ctx);
+    this.ctx.closePath();
   },
   styles: {
-    block: function(cell) {
+    block: function(cell, ctx) {
       var color = cell.lifeColor();
-
+      ctx.beginPath();
+      
       if (cell.alive) {
-        this.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', 1)';//'+ increment/3 +')';
-        this.ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', 1)';//'+ increment/3 +')';
+        ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
       } else {
-        this.ctx.strokeStyle = 'black';
-        this.ctx.lineWidth = 0.3;
-        this.ctx.strokeRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
-        this.ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 0.3;
+        ctx.strokeRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
       }
-      this.ctx.fill();
-      this.ctx.stroke();
+      ctx.fill();
+      ctx.stroke();
     },
-    moogily: function(cell) {
+    moogily: function(cell, ctx) {
       var color = cell.lifeColor(),
           x = cell.x * cell.unit + cell.unit / 2,
           y = cell.y * cell.unit + cell.unit / 2;
       
-      this.ctx.beginPath();
-      this.ctx.arc(x, y, cell.unit/2, 0, Math.PI * 2, true);
+      ctx.arc(x, y, cell.unit/2, 0, Math.PI * 2, true);
       
       if (cell.alive) {
-        this.ctx.fillStyle = 'rgba('+ rand(color[0]) +', '+ rand(color[1]) +', '+ rand(color[2]) +', '+ rand(4) +')';//'+ increment/3 +')';;
-        this.ctx.lineWidth = rand(8);
-        this.ctx.strokeStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ Math.random() +')';//'+ increment/3 +')';
+        ctx.fillStyle = 'rgba('+ rand(color[0]) +', '+ rand(color[1]) +', '+ rand(color[2]) +', '+ rand(4) +')';//'+ increment/3 +')';;
+        ctx.lineWidth = rand(cell.unit/2);
+        ctx.strokeStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ Math.random() +')';//'+ increment/3 +')';
       } else {
-        this.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', .5)';//'+ increment/3 +')';
-        this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = .2;
+        ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', .5)';//'+ increment/3 +')';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = .1;
       }
-      
-      this.ctx.fill();
-      this.ctx.stroke();
-      this.ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
     },
-    fadeIn: function(cell) {
+    fadeIn: function(cell, ctx) {
       var self = this, color = cell.lifeColor();
       
       if (cell.alive) {
         clearInterval(this.fadeInterval);
         this.fadeInterval = setInterval(function() {
-          self.ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ (self.increment++)/4 +')';
-          self.ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
-          self.ctx.fill();
+          ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ (self.increment++)/4 +')';
+          ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+          ctx.fill();
         }, 5);
       } else {
-        this.ctx.fillStyle = 'white';
-        this.ctx.strokeStyle = 'black';
-        this.ctx.lineWidth = .2;
-        this.ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
-        this.ctx.fill();
-        this.ctx.stroke();
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = .2;
+        ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.fill();
+        ctx.stroke();
       }
     }
   }
@@ -309,6 +383,7 @@ function Cell(x, y, alive, automaton) {
   this.unit = automaton.unit;
   this.flaggedForDeath = false;
   this.flaggedForRevive = false;
+  this.age = 0;
 }
 // arrays of rgb values [r, g, b]
 Cell.lifeColors = {
@@ -334,8 +409,14 @@ Cell.prototype = {
       else if (num > 3) this.flaggedForDeath = true;
     } else {
       // 4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-      if (num == 3) this.flaggedForRevive = true;
+      var r = 3;
+      //if (cell.age) r = rand(3) < 3 ? 3 : 2;
+      if (num == r) this.flaggedForRevive = true;
     }
+  },
+  update: function() {
+    if (this.alive) this.age++;
+    return this;
   },
   numLiveNeighbors: function() {
     var liveNeighborsCount = 0;
@@ -362,7 +443,7 @@ Cell.prototype = {
   lifeColor: function() { return Cell.lifeColors[this.numLiveNeighbors()]; },
   toggle:    function() { this.alive = !this.alive; return this; },
   revive:    function() { this.alive = true; return this; },
-  kill:      function() { this.alive = false; return this; }
+  kill:      function() { this.alive = false; this.age = 0; return this; }
 }
 
 function Storage(name, type) {
@@ -398,7 +479,7 @@ function IO(anim) {
   this.counter       = 0;
 }
 IO.inputIds = ['fps', 'w', 'h', 'unit', 'maxClumps', 'clumpSize', 'preSeed', 'renderStyle'];
-IO.codeMap = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 82: 'r', 83: 's' };
+IO.codeMap = { 32: 'spacebar', 37: 'left', 38: 'above', 39: 'right', 40: 'below', 67: 'c', 72: 'h', 79: 'o', 82: 'r', 83: 's', 86: 'v' };
 
 IO.prototype = {
   state: function() {
@@ -441,42 +522,10 @@ IO.prototype = {
     this.clock.text(formattedTime(0));
     return this;
   },
-  bindEvents: function() {
-    var self = this;
-    
-    $(document).keyup(function(e) {
-      var cmd = IO.codeMap[e.which];
-
-      switch(cmd) {
-        case 'spacebar': self.anim.toggle(); break;
-        case 's':        self.anim.random(); break;
-        case 'c':        self.anim.clear(); break;
-        case 'r':        self.anim.reset(); break;
-        case 'left': case 'above': case 'right': case 'below': self.anim.moveClump(cmd); break;
-      }
-      return false;
-    });
-    
-    this.toggle.click(function() { self.anim.playing ? self.anim.stop() : self.anim.start(); });
-    $('#reset').click(function() { self.anim.reset(); self.resetClock(); });
-    $('#clear').click(function() { self.anim.clear(); self.resetClock(); });
-    $('#center').click(function() { self.anim.center(); self.resetClock(); });
-    $('#random').click(function() { self.anim.random(); self.resetClock(); });
-    $('#save').click(function() {
-      self.anim.stop();
-      self.anim.storage.save('getSeed', self.anim.automaton.getSeed());
-      self.anim.storage.save('inputState', self.state());
-    });
-    $('#preSeed').change(function() { self.anim.preSeed(); self.resetClock(); });
-    $('#update').submit(function() { self.anim.update(); self.resetClock(); return false; });
-    
-    // toggle individual cells by clicking and/or click dragging
-    this.anim.canvas.mousedown(function(e) {
-      self.anim.toggleCell(e, this).startCellTrace();
-    }).mouseup(function(e) {
-      self.anim.endCellTrace();
-    });
-    return this;
+  outputStats: function(stats) {
+    for (var id in stats) 
+      if (stats.hasOwnProperty(id))
+        $('#'+ id).html(stats[id]);
   }
 }
 
@@ -485,12 +534,10 @@ function Anim(canvas_id) {
   var self = this;
   this.canvas    = $('#'+ canvas_id);
   this.playing   = false;
-  this.interval  = 0;
   this.storage   = new Storage('conways');
-  this.io        = new IO(this).read().bindEvents();
+  this.io        = new IO(this).read();
   this.newAutomaton = function(preSeed) {
-    var automaton = new Automaton(this.canvas, this.io.w, this.io.h, this.io.unit, (preSeed || this.io.preSeed), this.io.renderOptions());
-    return automaton;
+    return new Automaton(this.canvas, this.io.w, this.io.h, this.io.unit, (preSeed || this.io.preSeed), this.io.renderOptions());
   }
   this.automaton = this.newAutomaton().draw();
   this.io.anim = this; // set at the end because io needs anim.automaton
@@ -500,19 +547,18 @@ Anim.prototype = {
   start: function() {
     var self = this, cellCount = 0;
     
-    this.interval = setInterval(function() {
+    setTimeout(function() {
       self.automaton.update().draw();
       cellCount = self.automaton.liveCellCount();
-      self.io.liveCellCount.text(cellCount);
-      if (cellCount < 3) return self.stop();
+      self.io.outputStats(self.automaton.getStats(cellCount, this.playing));
+      if (cellCount < 3) return self.playing = false;
+      if (self.playing) setTimeout(arguments.callee, 1000 / self.io.fps);
     }, 1000 / this.io.fps);
     
     this.playing = true;
     this.io.showClock(true).toggle.text('Pause (space)');
   },
   stop: function() {
-    clearInterval(this.interval);
-    this.interval = 0;
     this.playing = false;
     this.io.showClock(false).toggle.text('Play (space)');
   },
@@ -530,11 +576,12 @@ Anim.prototype = {
     this.stop();
     this.io.read().resetClock();
     this.automaton = this.newAutomaton([]).draw();
-    this.io.liveCellCount.text(this.automaton.liveCellCount());
+    this.io.liveCellCount.text(0);
+    return this;
   },
   update: function() {
     this.io.read().resetClock();
-    this.automaton = this.newAutomaton().draw();
+    this.automaton.updateOptions(this.io);
     this.io.liveCellCount.text(this.automaton.liveCellCount());
   },
   random: function() {
@@ -555,6 +602,9 @@ Anim.prototype = {
     return Math.floor((this.e.pageY - this.canvas.offset().top) / this.automaton.unit);
   },
   toggleCell: function(e) {
+    if (this.playing) { this.stop(); this.wasPlaying = true; }
+    else this.wasPlaying = false;
+    
     this.e = e;
     this.tracedCells = [this.automaton.getCell(this.mouseX(), this.mouseY())];
     
@@ -569,7 +619,6 @@ Anim.prototype = {
     return this;
   },
   startCellTrace: function() {
-    if (this.playing) { this.stop(); this.playing = true; }
     var self = this;
     
     this.canvas.mousemove(function(e) {
@@ -586,15 +635,67 @@ Anim.prototype = {
   endCellTrace: function() {
     this.canvas.unbind('mousemove');
     this.io.liveCellCount.text(this.automaton.liveCellCount());
-    if (this.playing) this.start();
+    if (this.wasPlaying) this.start();
   },
-  moveClump: function(where) { this.automaton.moveClump(where); },
-  center:    function() { this.automaton.center(); }
+  line: function(vertical) { 
+    var line = (vertical ? 'v' : 'h') + 'line';
+    this.stop();
+    Automaton.seeds[line] = this.automaton.lineSeed(vertical);
+    this.automaton = this.newAutomaton(line).center().draw();
+  },
+  moveClump: function(where)    { this.automaton.moveClump(where); },
+  center:    function()         { this.automaton.center(); },
+  bindEvents: function() {
+    var self = this;
+    
+    $(document).keydown(function(e) {
+      var target = e.target.tagName.toLowerCase();
+      if (target == 'input' || target == 'select') return true;
+      var cmd = IO.codeMap[e.which];
+
+      switch(cmd) {
+        case 'spacebar': self.toggle(); break;
+        case 's':        self.random(); break;
+        case 'c':        self.clear(); break;
+        case 'r':        self.reset(); break;
+        case 'o':        self.center(); break;
+        case 'v':        self.line(true); break;
+        case 'h':        self.line(false); break;
+        case 'left': case 'above': case 'right': case 'below': self.moveClump(cmd); break;
+        default: return true;
+      }
+      return false;
+    });
+    
+    this.io.toggle.click(function() { self.playing ? self.stop() : self.start(); });
+    $('button#reset').click(function() { self.reset(); });
+    $('button#clear').click(function() { self.clear(); });
+    $('button#center').click(function() { self.center(); });
+    $('button#random').click(function() { self.random(); });
+    $('button#save').click(function() {
+      self.stop();
+      self.storage.save('getSeed', self.automaton.getSeed());
+      self.storage.save('inputState', self.io.state());
+    });
+    $('button.lineBtn').click(function() { self.line($(this).hasClass('vertical')); });
+    $('select#preSeed').change(function() { self.preSeed(); });
+    $('select#renderStyle').change(function() { self.update(); });
+    $('form#update').submit(function() { self.update(); return false; });
+    $('option').click(function() { $(this).parent().blur(); });
+    
+    // toggle individual cells by clicking and/or click dragging
+    this.canvas.mousedown(function(e) {
+      self.toggleCell(e, this).startCellTrace();
+    }).mouseup(function(e) {
+      self.endCellTrace();
+    });
+    return this;
+  }
 }
 
 // Initialization
 $(function() {
-  new Anim('grid');
+  new Anim('grid').bindEvents();
 });
 
 // utils

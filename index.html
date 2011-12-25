@@ -6,14 +6,14 @@
       body { font-size:100%; font-family: Verdana, Arial, sans-serif; color:#333; background: #ebebeb }
       button { margin:0;}
       form { margin-top: 10px; }
-      input[type="text"], select { float:right; }
-      label { display: block; margin-bottom: 5px;}
+      input[type="text"], select { float:right; width:115px; }
+      label { display: block; margin-bottom: 5px; font-size:12px; line-height:23px; }
       ul { margin:0; padding:0 0 0 10px; }
       p { margin: 0 0 10px 0;}
       div { margin:0 0 10px 0; }
       #wrap { margin:20px; }
-      #grid { border:1px solid black; overflow: hidden; display: block; float: left; background: #fff; }
-      #controls { float: right; width:33% } 
+      #grid { margin:0 20px 20px 0; border:1px solid black; overflow: hidden; display: block; float: left; background: #fff; }
+      #controls { float: right; width:27% } 
       #desc, #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
       #desc { border-color: #ddd; }
       #readout { border-color: #9999dd; }
@@ -43,9 +43,11 @@
           </div>
           
           <div id="readout">
-            <p>Elapsed: <span id="clock">00:00:00</span></p>
-            <p>Live Cells: <span id="liveCellCount">0</span></p>
-            <p>Max Population #: <span id="maxPopulationNum">0</span></p>
+            <p>Elapsed:          <span id="clock">00:00:00</span></p>
+            <p>                  <span id="evolving">Not yet</span></p>
+            <p>Live Cells:       <span id="liveCellCount">0</span></p>
+            <p>Max Population #: <span id="maxPopulation">0</span></p>
+            <p>Oldest Cell:      <span id="oldestCell">0</span></p>
           </div>
           
           <ul id="btns">
@@ -54,32 +56,36 @@
             </li>
             <li>
               <button id="center" title="Press the letter o to center the cells">Center (o)</button>
+              <button class="lineBtn vertical" title="Seed a line of cells through the vertical center">V Line (v)</button>
+              <button class="lineBtn" title="Seed a line of cells through the horizontal center">H Line (h)</button>
             </li>
             <li>
               <button id="clear">Clear (c)</button><button id="random">Random Seed (s)</button><button id="save">Save</button>
             </li>
-          </ul>
-        
-          <form id="update" action="" method="">
-            <label>
-              PreSeed: 
+            <li>
+              PreSeed:
               <select id="preSeed">
                 <option selected="selected" value="gosper">Gosper's Glider Gun</option>
                 <option value="sword">Sword</option>
                 <option value="rorschach">Rorschach</option>
+                <option value="fpentomino">F Pentomino</option>
+                <option value="diehard">Diehard</option>
               </select>
-            </label>
-            <label>
-              Render Style: 
+            </li>
+            <li>
+              Render Style:
               <select id="renderStyle" />
                 <option selected="selected" value="block">Blocky</option>
                 <option value="moogily">Googily Moogily</option>
                 <option value="fadeIn">Ghosty</option>
               </select>
-            </label>
+            </li>
+          </ul>
+        
+          <form id="update" action="" method="">
             <label>
               FPS: 
-              <input type="text" id="fps" value="30" />
+              <input type="text" id="fps" value="10" />
             </label>
             <label>
               Width: 
