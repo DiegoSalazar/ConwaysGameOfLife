@@ -1,6 +1,7 @@
 ## Conway's Game of Life
 
 A javascript/canvas implementation of John Conway's Game of Life.
+
 See: http://en.wikipedia.org/wiki/Conway's_Game_of_Life
 
 Open index.html in a canvas compatible web browser and click the Start button.
