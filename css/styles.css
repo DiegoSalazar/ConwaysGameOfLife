@@ -1,0 +1,19 @@
+body { font-size:100%; font-family: Verdana, Arial, sans-serif; color:#333; background: #ebebeb }
+button { margin:0;}
+form { margin-top: 10px; }
+input[type="text"], select { float:right; width:115px; }
+label { display: block; margin-bottom: 5px; font-size:12px; line-height:23px; }
+ul { margin:0; padding:0 0 0 10px; }
+p { margin: 0 0 10px 0;}
+div { margin:0 0 10px 0; }
+#wrap { margin:20px; }
+#grid { margin:0 20px 20px 0; border:1px solid black; overflow: hidden; display: block; float: left; background: #fff; }
+#controls { float: right; width:27% } 
+#desc, #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
+#desc { border-color: #ddd; }
+#readout { border-color: #9999dd; }
+#btns { list-style:none; margin:0;padding:0;}
+#btns li { padding:5px; background:#fff; margin:0 0 5px 0;}
+.cell { float: left; }
+.alive { background: #000; }
+.dead { background: #fff; }

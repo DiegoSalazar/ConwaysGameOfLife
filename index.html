@@ -2,30 +2,7 @@
 <html>
   <head>
     <title>Conway's Game of Life</title>
-    <style type="text/css">
-      body { font-size:100%; font-family: Verdana, Arial, sans-serif; color:#333; background: #ebebeb }
-      button { margin:0;}
-      form { margin-top: 10px; }
-      input[type="text"], select { float:right; width:115px; }
-      label { display: block; margin-bottom: 5px; font-size:12px; line-height:23px; }
-      ul { margin:0; padding:0 0 0 10px; }
-      p { margin: 0 0 10px 0;}
-      div { margin:0 0 10px 0; }
-      #wrap { margin:20px; }
-      #grid { margin:0 20px 20px 0; border:1px solid black; overflow: hidden; display: block; float: left; background: #fff; }
-      #controls { float: right; width:27% } 
-      #desc, #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
-      #desc { border-color: #ddd; }
-      #readout { border-color: #9999dd; }
-      #btns { list-style:none; margin:0;padding:0;}
-      #btns li { padding:5px; background:#fff; margin:0 0 5px 0;}
-      .cell { float: left; }
-      .alive { background: #000; }
-      .dead { background: #fff; }
-    </style>
-    
-    <script type="text/javascript" src="jquery.js"></script>
-    <script type="text/javascript" src="conwaysgame.js"></script>
+    <link rel="stylesheet" href="css/styles.css" type="text/css" media="screen" charset="utf-8" />
   </head>
   <body>
     <div id="wrap">
@@ -111,5 +88,18 @@
           </form>
         </div>
     </div>
+    
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/storage.js"></script>
+    <script type="text/javascript" src="js/cell.js"></script>
+    <script type="text/javascript" src="js/renderer.js"></script>
+    <script type="text/javascript" src="js/io.js"></script>
+    <script type="text/javascript" src="js/automaton.js"></script>
+    <script type="text/javascript" src="js/anim.js"></script>
+    <script type="text/javascript">
+      // Initialization
+      new Anim('grid').bindEvents();
+    </script>
   </body>
 </html>
