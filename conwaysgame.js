@@ -50,7 +50,7 @@ function Automaton(canvas, w, h, unit, seed, renderOptions) {
   this.maxPopulation = 0;
   this.renderer = new Renderer(canvas, this, renderOptions);
   
-  // build grid and add cells to the it
+  // build grid and add cells to it
   this.traverseGrid(function(cell, x, y) {
     this.grid[x][y] = new Cell(x, y, this.dropSeed(x, y), this);    
   }, function(x) { // this callback runs first
@@ -235,11 +235,11 @@ Automaton.prototype = {
   },
   center: function() {
     var cells = this.getLiveCells(), liveXs = [], liveYs = [], minX, maxX, minY, maxY, tx, ty;
-    // get unique live points
+    // get live points
     for (var i = 0, len = cells.length; i < len; i++) {
       var cell = cells[i];
-      if (liveXs.indexOf(cell.x) == -1) liveXs.push(cell.x);
-      if (liveYs.indexOf(cell.y) == -1) liveYs.push(cell.y);
+      liveXs.push(cell.x);
+      liveYs.push(cell.y);
     }
     
     // get boundaries
@@ -314,32 +314,31 @@ Renderer.prototype = {
   },
   draw: function(cell) {
     this.ctx.beginPath();
-    this.styles[this.options.style].call(this, cell, this.ctx);
+    this.styles[this.options.style].call(this, cell, this.ctx, this.automaton.unit);
     this.ctx.closePath();
   },
   styles: {
-    block: function(cell, ctx) {
+    block: function(cell, ctx, unit) {
       var color = cell.lifeColor();
-      ctx.beginPath();
       
       if (cell.alive) {
         ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', 1)';//'+ increment/3 +')';
-        ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.fillRect(cell.x * unit, cell.y * unit, unit, unit);
       } else {
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 0.3;
-        ctx.strokeRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
-        ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.strokeRect(cell.x * unit, cell.y * unit, unit, unit);
+        ctx.clearRect(cell.x * unit, cell.y * unit, unit, unit);
       }
       ctx.fill();
       ctx.stroke();
     },
-    moogily: function(cell, ctx) {
+    moogily: function(cell, ctx, unit) {
       var color = cell.lifeColor(),
-          x = cell.x * cell.unit + cell.unit / 2,
-          y = cell.y * cell.unit + cell.unit / 2;
+          x = cell.x * unit + unit / 2,
+          y = cell.y * unit + unit / 2;
       
-      ctx.arc(x, y, cell.unit/2, 0, Math.PI * 2, true);
+      ctx.arc(x, y, unit/2, 0, Math.PI * 2, true);
       
       if (cell.alive) {
         ctx.fillStyle = 'rgba('+ rand(color[0]) +', '+ rand(color[1]) +', '+ rand(color[2]) +', '+ rand(4) +')';//'+ increment/3 +')';;
@@ -353,21 +352,21 @@ Renderer.prototype = {
       ctx.fill();
       ctx.stroke();
     },
-    fadeIn: function(cell, ctx) {
+    fadeIn: function(cell, ctx, unit) {
       var self = this, color = cell.lifeColor();
       
       if (cell.alive) {
         clearInterval(this.fadeInterval);
         this.fadeInterval = setInterval(function() {
           ctx.fillStyle = 'rgba('+ color[0] +', '+ color[1] +', '+ color[2] +', '+ (self.increment++)/4 +')';
-          ctx.fillRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+          ctx.fillRect(cell.x * unit, cell.y * unit, unit, unit);
           ctx.fill();
         }, 5);
       } else {
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'black';
         ctx.lineWidth = .2;
-        ctx.clearRect(cell.x * cell.unit, cell.y * cell.unit, cell.unit, cell.unit);
+        ctx.clearRect(cell.x * unit, cell.y * unit, unit, unit);
         ctx.fill();
         ctx.stroke();
       }
@@ -380,7 +379,6 @@ function Cell(x, y, alive, automaton) {
   this.y = y;
   this.alive = alive;
   this.automaton = automaton;
-  this.unit = automaton.unit;
   this.flaggedForDeath = false;
   this.flaggedForRevive = false;
   this.age = 0;
