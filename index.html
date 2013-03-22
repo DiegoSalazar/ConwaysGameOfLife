@@ -28,32 +28,86 @@
     <div id="content-wrapper">
       <div class="inner clearfix">
         <section id="main-content">
-          <h3>Welcome to GitHub Pages.</h3>
+          
+          <canvas id="grid"></canvas>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+          <div id="controls">
+            <div id="desc">
+              <ul>
+                <li>Use the keyboard or buttons to control the game</li>
+                <li>Click individual cells on/off</li>
+                <li>Hold down the mouse and trace multiple cells</li>
+              </ul>
+            </div>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+            <div id="readout">
+              <p>Elapsed:          <span id="clock">00:00:00</span></p>
+              <p>                  <span id="evolving">Not yet</span></p>
+              <p>Live Cells:       <span id="liveCellCount">0</span></p>
+              <p>Max Population #: <span id="maxPopulation">0</span></p>
+              <p>Oldest Cell:      <span id="oldestCell">0</span></p>
+            </div>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+            <ul id="btns">
+              <li>
+                <button id="toggle">Play (space)</button><button id="reset">Reset (r)</button>
+              </li>
+              <li>
+                <button id="center" title="Press the letter o to center the cells">Center (o)</button>
+                <button class="lineBtn vertical" title="Seed a line of cells through the vertical center">V Line (v)</button>
+                <button class="lineBtn" title="Seed a line of cells through the horizontal center">H Line (h)</button>
+              </li>
+              <li>
+                <button id="clear">Clear (c)</button><button id="random">Random Seed (s)</button><button id="save">Save</button>
+              </li>
+              <li>
+                PreSeed:
+                <select id="preSeed">
+                  <option selected="selected" value="gosper">Gosper's Glider Gun</option>
+                  <option value="sword">Sword</option>
+                  <option value="rorschach">Rorschach</option>
+                  <option value="fpentomino">F Pentomino</option>
+                  <option value="diehard">Diehard</option>
+                </select>
+              </li>
+              <li>
+                Render Style:
+                <select id="renderStyle" />
+                  <option selected="selected" value="block">Blocky</option>
+                  <option value="moogily">Googily Moogily</option>
+                  <option value="fadeIn">Ghosty</option>
+                </select>
+              </li>
+            </ul>
 
-<h3>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+            <form id="update" action="" method="">
+              <label>
+                FPS: 
+                <input type="text" id="fps" value="10" />
+              </label>
+              <label>
+                Width: 
+                <input type="text" id="w" value="50" />
+              </label>
+              <label>
+                Height: 
+                <input type="text" id="h" value="50" />
+              </label>
+              <label>
+                Unit: 
+                <input type="text" id="unit" value="10" />
+              </label>
+              <label>
+                Max Seed Clumps: 
+                <input type="text" id="maxClumps" value="30" />
+              </label>
+              <label>
+                Max Clump Size: 
+                <input type="text" id="clumpSize" value="40" />
+              </label>
+              <input type="submit" value="Update" />
+            </form>
+          </div>
         </section>
 
         <aside id="sidebar">
@@ -73,6 +127,17 @@ $ git checkout gh-pages
       </div>
     </div>
 
-  
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/storage.js"></script>
+    <script type="text/javascript" src="js/cell.js"></script>
+    <script type="text/javascript" src="js/renderer.js"></script>
+    <script type="text/javascript" src="js/io.js"></script>
+    <script type="text/javascript" src="js/automaton.js"></script>
+    <script type="text/javascript" src="js/anim.js"></script>
+    <script type="text/javascript">
+      // Initialization
+      new Anim('grid').bindEvents();
+    </script>
   </body>
 </html>
