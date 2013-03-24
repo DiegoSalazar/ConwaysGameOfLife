@@ -47,6 +47,12 @@ Cell.prototype = {
       var targetX = this.x + Automaton.adjust[Automaton.wheres[i]]['x'],
           targetY = this.y + Automaton.adjust[Automaton.wheres[i]]['y'],
           alive = false;
+          
+      // closed universe
+      if (targetX > this.automaton.w) targetX = 0;
+      if (targetX < this.automaton.w) targetX = this.automaton.w;
+      if (targetY > this.automaton.h) targetY = 0;
+      if (targetY < this.automaton.h) targetY = this.automaton.h;
 
       if (this.automaton.grid[targetX] && this.automaton.grid[targetX][targetY])
         alive = this.automaton.grid[targetX][targetY].alive;
