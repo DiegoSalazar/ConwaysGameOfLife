@@ -50,9 +50,9 @@ Cell.prototype = {
           
       // closed universe
       if (targetX > this.automaton.w) targetX = 0;
-      if (targetX < this.automaton.w) targetX = this.automaton.w;
+      if (targetX < this.automaton.w) targetX = this.automaton.w * this.automaton.unit;
       if (targetY > this.automaton.h) targetY = 0;
-      if (targetY < this.automaton.h) targetY = this.automaton.h;
+      if (targetY < this.automaton.h) targetY = this.automaton.h * this.automaton.unit;
 
       if (this.automaton.grid[targetX] && this.automaton.grid[targetX][targetY])
         alive = this.automaton.grid[targetX][targetY].alive;
