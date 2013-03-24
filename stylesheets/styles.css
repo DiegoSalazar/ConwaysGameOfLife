@@ -1,7 +1,7 @@
 #controls { margin-bottom: 10px; }
 #controls button { margin:0;}
 #controls form { margin-top: 10px; }
-#controls input[type="text"], select { float:right; width:113px; }
+#controls input[type="text"], select { float:right; width:110px; }
 #controls input[type="text"] { width: 40px; }
 #controls label { display: block; margin-bottom: 5px; font-size:12px; line-height:23px; }
 #controls ul { margin:0; padding:0; }
