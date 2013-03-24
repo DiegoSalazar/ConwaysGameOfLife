@@ -3,6 +3,7 @@
 A javascript/canvas implementation of John Conway's Game of Life.
 
 Demo: http://diegosalazar.github.com/ConwaysGameOfLife/
+
 Info: http://en.wikipedia.org/wiki/Conway's_Game_of_Life
 
 ## Usage
