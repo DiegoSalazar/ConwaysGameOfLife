@@ -10,7 +10,7 @@ div { margin:0 0 10px 0; }
 #controls { float: right; width:27% } 
 #desc, #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
 #desc { border-color: #ddd; }
-#readout { border-color: #9999dd; }
+#readout { border-color: #9999dd; line-height: 1px; }
 #btns { list-style:none; margin:0;padding:0;}
 #btns li { padding:5px; background:#fff; margin:0 0 5px 0;}
 .cell { float: left; }
