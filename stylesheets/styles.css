@@ -3,13 +3,14 @@
 #controls form { margin-top: 10px; }
 #controls input[type="text"], select { float:right; width:115px; }
 #controls label { display: block; margin-bottom: 5px; font-size:12px; line-height:23px; }
-#controls ul { margin:0; padding:0 0 0 10px; }
+#controls ul { margin:0; padding:0; }
+#controls ul li { padding: 0; }
 #controls p { margin: 0 0 10px 0;}
 #controls div { margin:0 0 10px 0; }
 #grid { overflow: hidden; background: #fff; }
-#controls #desc, #controls #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
+#controls #desc, #controls #readout { line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
 #controls #desc { border-color: #ddd; }
-#controls #readout { border-color: #9999dd; line-height: 1px; }
+#controls #readout { border-color: #9999dd; }
 #controls #btns { list-style:none; margin:0;padding:0;}
 #controls #btns li { padding:5px; background:#fff; margin:0 0 5px 0;}
 .cell { float: left; }
