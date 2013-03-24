@@ -1,10 +1,8 @@
 ## Conway's Game of Life
 
-A javascript/canvas implementation of John Conway's Game of Life.
-
-Demo: http://diegosalazar.github.com/ConwaysGameOfLife/
-
-Info: http://en.wikipedia.org/wiki/Conway's_Game_of_Life
+A neat colorful javascript/canvas implementation of John Conway's Game of Life - a cellular automaton.
+- Demo: http://diegosalazar.github.com/ConwaysGameOfLife/
+- Info: http://en.wikipedia.org/wiki/Conway's_Game_of_Life
 
 ## Usage
 Open index.html in a canvas compatible web browser and click the Start button.
