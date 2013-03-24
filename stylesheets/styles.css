@@ -1,3 +1,4 @@
+#controls { margin-bottom: 10px; }
 #controls button { margin:0;}
 #controls form { margin-top: 10px; }
 #controls input[type="text"], select { float:right; width:115px; }
@@ -5,7 +6,7 @@
 #controls ul { margin:0; padding:0 0 0 10px; }
 #controls p { margin: 0 0 10px 0;}
 #controls div { margin:0 0 10px 0; }
-#grid { margin:0 20px 20px 0; border:1px solid black; overflow: hidden; display: block; float: left; background: #fff; }
+#grid { overflow: hidden; background: #fff; }
 #controls #desc, #controls #readout { font-size: 12px; line-height: 14px; padding: 7px 10px; border: 2px solid; background: #fff; }
 #controls #desc { border-color: #ddd; }
 #controls #readout { border-color: #9999dd; line-height: 1px; }
