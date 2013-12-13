@@ -50,6 +50,7 @@ Cell.prototype = {
 
       if (this.automaton.grid[targetX] && this.automaton.grid[targetX][targetY])
         alive = this.automaton.grid[targetX][targetY].alive;
+        
       if (alive) liveNeighborsCount++;
     }
 
