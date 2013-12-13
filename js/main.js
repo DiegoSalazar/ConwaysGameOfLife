@@ -1,5 +1,5 @@
 // creates the gameloop and provides UI control of the automaton
-function Anim(canvas_id) {
+function Main(canvas_id) {
   var self = this;
   this.canvas    = $('#'+ canvas_id);
   this.playing   = false;
@@ -12,7 +12,7 @@ function Anim(canvas_id) {
   this.io.anim = this; // set at the end because io needs anim.automaton
 }
 
-Anim.prototype = {
+Main.prototype = {
   start: function() {
     var self = this, cellCount = 0;
     
@@ -161,3 +161,8 @@ Anim.prototype = {
     return this;
   }
 }
+
+// Fight!
+var game = new Main('grid').bindEvents();
+game.random();
+game.start();

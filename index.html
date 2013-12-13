@@ -67,8 +67,8 @@
               <li>
                 PreSeed:
                 <select id="preSeed">
-                  <option selected="selected" value="gosper">Gosper's Glider Gun</option>
-                  <option value="sword">Sword</option>
+                  <option selected="selected" value="sword">Sword</option>
+                  <option value="gosper">Gosper's Glider Gun</option>
                   <option value="rorschach">Rorschach</option>
                   <option value="fpentomino">F Pentomino</option>
                   <option value="diehard">Diehard</option>
@@ -87,27 +87,27 @@
             <form id="update" action="" method="">
               <label>
                 FPS: 
-                <input type="text" id="fps" value="10" />
+                <input type="text" id="fps" value="30" />
               </label>
               <label>
                 Width: 
-                <input type="text" id="w" value="50" />
+                <input type="text" id="w" value="180" />
               </label>
               <label>
                 Height: 
-                <input type="text" id="h" value="50" />
+                <input type="text" id="h" value="200" />
               </label>
               <label>
                 Unit: 
-                <input type="text" id="unit" value="10" />
+                <input type="text" id="unit" value="4" />
               </label>
               <label>
-                Max Seed Clumps: 
-                <input type="text" id="maxClumps" value="30" />
+                Max Clumps: 
+                <input type="text" id="maxClumps" value="3000" />
               </label>
               <label>
                 Max Clump Size: 
-                <input type="text" id="clumpSize" value="40" />
+                <input type="text" id="clumpSize" value="10" />
               </label>
               <input type="submit" value="Update" />
             </form>
@@ -137,10 +137,6 @@
     <script type="text/javascript" src="js/renderer.js"></script>
     <script type="text/javascript" src="js/io.js"></script>
     <script type="text/javascript" src="js/automaton.js"></script>
-    <script type="text/javascript" src="js/anim.js"></script>
-    <script type="text/javascript">
-      // Initialization
-      new Anim('grid').bindEvents();
-    </script>
+    <script type="text/javascript" src="js/main.js"></script>
   </body>
 </html>
