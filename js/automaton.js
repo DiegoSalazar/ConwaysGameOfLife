@@ -146,52 +146,47 @@ Automaton.prototype = {
   },
   // randomly seed clumps of cells
   randomSeed: function(maxClumps, maxClumpSize) {
-    var numClumps = rand(maxClumps), cells = [];
+    var numClumps = rand(maxClumps), cell;
 
     // create the clumps
     for (var i = 0; i < numClumps; i++) {
       var clumpSize = rand(maxClumpSize),
-          randX = Math.floor(rand(this.w) / rand(4)),
-          randY = Math.floor(rand(this.h) / rand(4)),
-          cell = new Cell(randX, randY, true, this);
+          randX = Math.floor(rand(this.w) / rand(4));
+
+      if (this.grid[randX]) {
+        var randY = Math.floor(rand(this.h) / rand(4)),
+            cell = new Cell(randX, randY, true, this);
+
+        this.grid[randX][randY] = cell;
+      }
 
       // add cells to the clump
-      for (var j = 0; j < clumpSize; j++) {
-        cells.push(cell);
+      for (var j = 0; cell && j < clumpSize; j++) {
         var where = Automaton.wheres[rand(Automaton.wheres.length-1)]
-            x = cell.x + Automaton.adjust[where]['x'],
-            y = cell.y + Automaton.adjust[where]['y'];
+            x = cell.x + Automaton.adjust[where]['x'];
 
-        cell = new Cell(x, y, true, this);
+        if (this.grid[x]) {
+          var y = cell.y + Automaton.adjust[where]['y'];
+          this.grid[x][y] = new Cell(x, y, true, this);
+        }
       }
     }
-
-    // add the cells to the grid and return *this*
-    return this.traverseGrid(function(cell, x, y) {
-      for (var i = 0, len = cells.length; i < len; i++) {
-        var cell = cells[i];
-        if (x == cell.x && y == cell.y) 
-          this.grid[x][y] = cell;
-      }
-    });
+    return this;
   },
   moveClump: function(where) {
-    var cells = this.getLiveCells(), movedCells = [];
+    var cells = this.getLiveCells();
     
     for (var i = 0, len = cells.length; i < len; i++) {
       var cell = cells[i].kill();
-          newX = cell.x + Automaton.adjust[where]['x'],
-          newY = cell.y + Automaton.adjust[where]['y'];
+          newX = cell.x + Automaton.adjust[where]['x'];
       
-      movedCells.push(new Cell(newX, newY, true, this));
+      if (this.grid[newX]) {
+        var newY = cell.y + Automaton.adjust[where]['y']
+        this.grid[newX][newY] = new Cell(newX, newY, true, this); 
+      }
     }
     
-    return this.traverseGrid(function(cell, x, y) {
-      for (var i = 0, len = movedCells.length; i < len; i++) {
-        var c = movedCells[i];
-        if (c.x == x && c.y == y) this.grid[x][y] = c;
-      }
-    }).draw();
+    return this.draw();
   },
   center: function() {
     var cells = this.getLiveCells(), liveXs = [], liveYs = [], minX, maxX, minY, maxY, tx, ty;

@@ -45,12 +45,13 @@ Cell.prototype = {
 
     for (var i = 0; i < 8; i++) {
       var targetX = this.x + Automaton.adjust[Automaton.wheres[i]]['x'],
-          targetY = this.y + Automaton.adjust[Automaton.wheres[i]]['y'],
-          alive = false;
+          targetY = this.y + Automaton.adjust[Automaton.wheres[i]]['y'];
 
-      if (this.automaton.grid[targetX] && this.automaton.grid[targetX][targetY])
-        alive = this.automaton.grid[targetX][targetY].alive;
-      if (alive) liveNeighborsCount++;
+      if (this.automaton.grid[targetX]
+            && this.automaton.grid[targetX][targetY]
+            && this.automaton.grid[targetX][targetY].alive) {
+        liveNeighborsCount++;
+      }
     }
 
     return liveNeighborsCount;

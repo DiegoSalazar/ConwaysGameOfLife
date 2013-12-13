@@ -1,94 +1,135 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Conway's Game of Life</title>
-    <link rel="stylesheet" href="css/styles.css" type="text/css" media="screen" charset="utf-8" />
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/styles.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Conway's Game of Life by DiegoSalazar</title>
   </head>
+
   <body>
-    <div id="wrap">
+    <header>
+      <div class="inner">
         <h1>Conway's Game of Life</h1>
-        
-        <canvas id="grid"></canvas>
-        
-        <div id="controls">
-          <div id="desc">
-            <ul>
-              <li>Use the keyboard or buttons to control the game</li>
-              <li>Click individual cells on/off</li>
-              <li>Hold down the mouse and trace multiple cells</li>
+        <h2>HTML5 Canvas implementation of Conway's Game of Life - Cellular Automata</h2>
+        <a href="https://github.com/DiegoSalazar/ConwaysGameOfLife" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          
+          <canvas id="grid"></canvas>
+          
+        </section>
+
+        <aside id="sidebar">
+          <div id="controls">
+            <div id="desc">
+              <ul>
+                <li>Use the keyboard or buttons to control the game</li>
+                <li>Click individual cells on/off</li>
+                <li>Hold down the mouse and trace multiple cells</li>
+              </ul>
+            </div>
+
+            <div id="readout">
+              <p>Elapsed:          <span id="clock">00:00:00</span></p>
+              <p>                  <span id="evolving">Not yet</span></p>
+              <p>Live Cells:       <span id="liveCellCount">0</span></p>
+              <p>Max Population #: <span id="maxPopulation">0</span></p>
+              <p>Oldest Cell:      <span id="oldestCell">0</span></p>
+            </div>
+
+            <ul id="btns">
+              <li>
+                <button id="toggle">Play (space)</button><button id="reset">Reset (r)</button>
+              </li>
+              <li>
+                <button id="center" title="Press the letter o to center the cells">Center (o)</button>
+                <button class="lineBtn vertical" title="Seed a line of cells through the vertical center">V Line (v)</button>
+                <button class="lineBtn" title="Seed a line of cells through the horizontal center">H Line (h)</button>
+              </li>
+              <li>
+                <button id="clear">Clear (c)</button><button id="random">Random Seed (s)</button><button id="save">Save</button>
+              </li>
+              <li>
+                PreSeed:
+                <select id="preSeed">
+                  <option selected="selected" value="sword">Sword</option>
+                  <option value="gosper">Gosper's Glider Gun</option>
+                  <option value="rorschach">Rorschach</option>
+                  <option value="fpentomino">F Pentomino</option>
+                  <option value="diehard">Diehard</option>
+                </select>
+              </li>
+              <li>
+                Render Style:
+                <select id="renderStyle" />
+                  <option selected="selected" value="block">Blocky</option>
+                  <option value="moogily">Googily Moogily</option>
+                  <option value="fadeIn">Ghosty</option>
+                </select>
+              </li>
             </ul>
+
+            <form id="update" action="" method="">
+              <label>
+                FPS: 
+                <input type="text" id="fps" value="30" />
+              </label>
+              <label>
+                Width: 
+                <input type="text" id="w" value="180" />
+              </label>
+              <label>
+                Height: 
+                <input type="text" id="h" value="200" />
+              </label>
+              <label>
+                Unit: 
+                <input type="text" id="unit" value="4" />
+              </label>
+              <label>
+                Max Clumps: 
+                <input type="text" id="maxClumps" value="3000" />
+              </label>
+              <label>
+                Max Clump Size: 
+                <input type="text" id="clumpSize" value="10" />
+              </label>
+              <input type="submit" value="Update" />
+            </form>
           </div>
           
-          <div id="readout">
-            <p>Elapsed:          <span id="clock">00:00:00</span></p>
-            <p>                  <span id="evolving">Not yet</span></p>
-            <p>Live Cells:       <span id="liveCellCount">0</span></p>
-            <p>Max Population #: <span id="maxPopulation">0</span></p>
-            <p>Oldest Cell:      <span id="oldestCell">0</span></p>
-          </div>
+          <a href="https://github.com/DiegoSalazar/ConwaysGameOfLife/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/DiegoSalazar/ConwaysGameOfLife/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
           
-          <ul id="btns">
-            <li>
-              <button id="toggle">Play (space)</button><button id="reset">Reset (r)</button>
-            </li>
-            <li>
-              <button id="center" title="Press the letter o to center the cells">Center (o)</button>
-              <button class="lineBtn vertical" title="Seed a line of cells through the vertical center">V Line (v)</button>
-              <button class="lineBtn" title="Seed a line of cells through the horizontal center">H Line (h)</button>
-            </li>
-            <li>
-              <button id="clear">Clear (c)</button><button id="random">Random Seed (s)</button><button id="save">Save</button>
-            </li>
-            <li>
-              PreSeed:
-              <select id="preSeed">
-                <option selected="selected" value="gosper">Gosper's Glider Gun</option>
-                <option value="sword">Sword</option>
-                <option value="rorschach">Rorschach</option>
-                <option value="fpentomino">F Pentomino</option>
-                <option value="diehard">Diehard</option>
-              </select>
-            </li>
-            <li>
-              Render Style:
-              <select id="renderStyle" />
-                <option selected="selected" value="block">Blocky</option>
-                <option value="moogily">Googily Moogily</option>
-                <option value="fadeIn">Ghosty</option>
-              </select>
-            </li>
-          </ul>
-        
-          <form id="update" action="" method="">
-            <label>
-              FPS: 
-              <input type="text" id="fps" value="10" />
-            </label>
-            <label>
-              Width: 
-              <input type="text" id="w" value="80" />
-            </label>
-            <label>
-              Height: 
-              <input type="text" id="h" value="80" />
-            </label>
-            <label>
-              Unit: 
-              <input type="text" id="unit" value="10" />
-            </label>
-            <label>
-              Max Clumps: 
-              <input type="text" id="maxClumps" value="3000" />
-            </label>
-            <label>
-              Max Clump Size: 
-              <input type="text" id="clumpSize" value="10" />
-            </label>
-            <input type="submit" value="Update" />
-          </form>
-        </div>
+          <h3>Conways Game Of Life</h3>
+          <p class="repo-owner"><a href="https://github.com/DiegoSalazar/ConwaysGameOfLife"></a> is maintained by <a href="https://github.com/DiegoSalazar">DiegoSalazar</a>.</p>
+
+          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
     </div>
-    
+
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <script type="text/javascript" src="js/storage.js"></script>
